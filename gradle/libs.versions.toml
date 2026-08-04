@@ -1,0 +1,32 @@
+[versions]
+velocity = "3.5.0-SNAPSHOT"
+luckperms = "5.5"
+gson = "2.11.0"
+annotations = "26.0.2"
+caffeine = "3.2.0"
+configurate = "4.2.0"
+adventure = "4.18.0"
+junit = "5.11.4"
+assertj = "3.27.0"
+mockito = "5.23.0"
+shadow = "9.0.0"
+
+[libraries]
+bytebuddy = { module = "net.bytebuddy:byte-buddy", version = "1.18.11" }
+bytebuddy-agent = { module = "net.bytebuddy:byte-buddy-agent", version = "1.18.11" }
+velocity-api = { module = "com.velocitypowered:velocity-api", version.ref = "velocity" }
+luckperms-api = { module = "net.luckperms:api", version.ref = "luckperms" }
+gson = { module = "com.google.code.gson:gson", version.ref = "gson" }
+annotations = { module = "org.jetbrains:annotations", version.ref = "annotations" }
+caffeine = { module = "com.github.ben-manes.caffeine:caffeine", version.ref = "caffeine" }
+configurate-yaml = { module = "org.spongepowered:configurate-yaml", version.ref = "configurate" }
+adventure-plain = { module = "net.kyori:adventure-text-serializer-plain", version.ref = "adventure" }
+
+junit-bom = { module = "org.junit:junit-bom", version.ref = "junit" }
+junit-jupiter = { module = "org.junit.jupiter:junit-jupiter" }
+junit-platform-launcher = { module = "org.junit.platform:junit-platform-launcher" }
+assertj = { module = "org.assertj:assertj-core", version.ref = "assertj" }
+mockito = { module = "org.mockito:mockito-core", version.ref = "mockito" }
+
+[plugins]
+shadow = { id = "com.gradleup.shadow", version.ref = "shadow" }
