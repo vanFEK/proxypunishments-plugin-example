@@ -1,0 +1,148 @@
+package net.vanfek.proxybans.velocity.listener;
+
+import com.velocitypowered.api.event.EventTask;
+import com.velocitypowered.api.event.ResultedEvent.ComponentResult;
+import com.velocitypowered.api.event.Subscribe;
+import com.velocitypowered.api.event.connection.LoginEvent;
+import com.velocitypowered.api.proxy.Player;
+import net.kyori.adventure.text.Component;
+import net.vanfek.proxybans.api.ActiveBanView;
+import net.vanfek.proxybans.core.BanServiceImpl;
+import net.vanfek.proxybans.core.config.PluginConfig;
+import net.vanfek.proxybans.core.duration.DurationFormatter;
+import net.vanfek.proxybans.core.i18n.MessageBundle;
+import net.vanfek.proxybans.core.i18n.Placeholders;
+import org.jetbrains.annotations.NotNull;
+import org.slf4j.Logger;
+
+import java.time.Clock;
+import java.time.Duration;
+import java.time.Instant;
+import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
+
+/**
+ * Decides whether a connecting player is allowed in.
+ *
+ * <p>Runs as an {@link EventTask}, so the lookup never blocks a Netty thread. The two failure
+ * policies are deliberate:
+ *
+ * <ul>
+ *   <li><b>fail-open</b> — the service is unreachable and nothing usable is cached, so the player is
+ *       let in and the incident is logged. One banned player slipping through beats locking the
+ *       entire network out because an internal service restarted.</li>
+ *   <li><b>stale cache</b> — handled a layer below, in the ban service: an expired-but-recent answer
+ *       is preferred over no answer at all.</li>
+ * </ul>
+ */
+public final class LoginListener {
+
+    private final BanServiceImpl bans;
+    private final MessageBundle messages;
+    private final PluginConfig.Login config;
+    private final Clock clock;
+    private final Logger logger;
+
+    public LoginListener(
+            @NotNull BanServiceImpl bans,
+            @NotNull MessageBundle messages,
+            @NotNull PluginConfig.Login config,
+            @NotNull Clock clock,
+            @NotNull Logger logger
+    ) {
+        this.bans = bans;
+        this.messages = messages;
+        this.config = config;
+        this.clock = clock;
+        this.logger = logger;
+    }
+
+    @Subscribe
+    public EventTask onLogin(LoginEvent event) {
+        return EventTask.resumeWhenComplete(handle(event));
+    }
+
+    /**
+     * Visible for tests: the whole decision as one future, without Velocity's event plumbing.
+     */
+    public @NotNull CompletableFuture<Void> handle(@NotNull LoginEvent event) {
+        Player player = event.getPlayer();
+
+        return this.bans.findActiveBan(player.getUniqueId())
+                .thenCompose(active -> {
+                    Optional<ActiveBanView> enforceable = active.filter(this::isStillActive);
+
+                    if (enforceable.isPresent()) {
+                        event.setResult(ComponentResult.denied(renderBan(enforceable.get())));
+
+                        return CompletableFuture.completedFuture(null);
+                    }
+
+                    return rememberIfNeeded(player);
+                })
+                .exceptionally(throwable -> {
+                    onLookupFailure(event, throwable);
+
+                    return null;
+                });
+    }
+
+    private CompletableFuture<Void> rememberIfNeeded(Player player) {
+        if (!this.config.rememberPlayer) {
+            return CompletableFuture.completedFuture(null);
+        }
+
+        return this.bans.rememberPlayer(player.getUniqueId(), player.getUsername())
+                .exceptionally(throwable -> {
+                    this.logger.warn("Failed to remember player {}: {}",
+                            player.getUsername(), unwrap(throwable).getMessage());
+
+                    return null;
+                });
+    }
+
+    private void onLookupFailure(LoginEvent event, Throwable throwable) {
+        Throwable cause = unwrap(throwable);
+        String username = event.getPlayer().getUsername();
+
+        if (this.config.failOpen) {
+            this.logger.warn("Ban lookup failed for {}, allowing login (fail-open): {}", username, cause.getMessage());
+
+            return;
+        }
+
+        this.logger.error("Ban lookup failed for {} and fail-open is disabled, denying login: {}",
+                username, cause.getMessage());
+
+        event.setResult(ComponentResult.denied(this.messages.render("login.service-unavailable")));
+    }
+
+    private boolean isStillActive(ActiveBanView ban) {
+        return ban.isPermanent() || !ban.isExpired(this.clock.instant());
+    }
+
+    private Component renderBan(ActiveBanView ban) {
+        String key = ban.isPermanent() ? "login.kick-permanent" : "login.kick-temporary";
+        Instant now = this.clock.instant();
+
+        Duration remaining = ban.expiry()
+                .map(expiry -> Duration.between(now, expiry))
+                .orElse(Duration.ZERO);
+
+        return this.messages.render(
+                key,
+                Placeholders.of("reason", ban.reason()),
+                Placeholders.of("admin", ban.issuedByName()),
+                Placeholders.of("remaining", ban.isPermanent() ? "—" : DurationFormatter.human(remaining)),
+                Placeholders.of("expires_at", ban.expiry().map(Instant::toString).orElse("—"))
+        );
+    }
+
+    private static Throwable unwrap(Throwable throwable) {
+        return throwable instanceof CompletionException completion && completion.getCause() != null
+                ? completion.getCause()
+                : throwable;
+    }
+
+}
