@@ -1,0 +1,27 @@
+# ProxyBans — Velocity plugin configuration.
+# Durations use ISO-8601 notation: PT2S = 2 seconds, PT30M = 30 minutes.
+
+service:
+  # Where proxybans-service listens. Inside Docker this is the service name, not localhost.
+  base-url: "http://proxybans:8080"
+  # Must match PROXYBANS_SERVICE_TOKEN on the service. An empty token is rejected on both sides.
+  token: ""
+  connect-timeout: PT2S
+  request-timeout: PT3S
+
+cache:
+  # How long a fresh answer is served without asking the service again.
+  active-ttl: PT30S
+  # How long a stale answer may still be used while the service is unreachable.
+  stale-ttl: PT30M
+  max-size: 100000
+
+login:
+  # Service unreachable and no usable cached answer: true lets the player in, false rejects them.
+  fail-open: true
+  # Report UUID <-> name to the service on login. Only useful in 'local' mode.
+  remember-player: true
+
+commands:
+  # Register /ban, /tempban, /unban... as top-level commands in addition to /pb <subcommand>.
+  register-top-level-aliases: true

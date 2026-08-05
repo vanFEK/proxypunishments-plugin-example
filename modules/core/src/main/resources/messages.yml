@@ -1,0 +1,83 @@
+# All strings are MiniMessage templates: https://docs.advntr.dev/minimessage/format.html
+# Placeholders are inserted verbatim and are never parsed as MiniMessage, so a player cannot
+# smuggle formatting into staff messages through their name or a ban reason.
+
+prefix: "<gray>[<gradient:#ff8a00:#e52e71>ProxyBans</gradient><gray>]</gray> "
+
+login:
+  kick-permanent: |-
+    <red><bold>Вы заблокированы навсегда</bold></red>
+
+    <gray>Причина:</gray> <white><reason></white>
+    <gray>Кто выдал:</gray> <white><admin></white>
+  kick-temporary: |-
+    <red><bold>Вы временно заблокированы</bold></red>
+
+    <gray>Причина:</gray> <white><reason></white>
+    <gray>Кто выдал:</gray> <white><admin></white>
+    <gray>Осталось:</gray> <yellow><remaining></yellow>
+    <gray>Истекает:</gray> <yellow><expires_at></yellow>
+  service-unavailable: |-
+    <red>Сервис блокировок недоступен.</red>
+    <gray>Попробуйте зайти позже.</gray>
+
+ban:
+  success-permanent: "<gray>[<gradient:#ff8a00:#e52e71>ProxyBans</gradient><gray>]</gray> <green>Игрок <white><player></white> заблокирован навсегда.</green> <gray>Причина:</gray> <white><reason></white>"
+  success-temporary: "<gray>[<gradient:#ff8a00:#e52e71>ProxyBans</gradient><gray>]</gray> <green>Игрок <white><player></white> заблокирован на <yellow><duration></yellow>.</green> <gray>Причина:</gray> <white><reason></white>"
+
+unban:
+  success: "<gray>[<gradient:#ff8a00:#e52e71>ProxyBans</gradient><gray>]</gray> <green>Блокировка с игрока <white><player></white> снята.</green> <gray>Причина:</gray> <white><reason></white>"
+
+info:
+  no-ban: "<gray>[<gradient:#ff8a00:#e52e71>ProxyBans</gradient><gray>]</gray> <green>Игрок <white><player></white> не заблокирован.</green>"
+  banned-permanent: |-
+    <gray>[<gradient:#ff8a00:#e52e71>ProxyBans</gradient><gray>]</gray> <red>Игрок <white><player></white> заблокирован навсегда.</red>
+    <gray>Причина:</gray> <white><reason></white>
+    <gray>Кто выдал:</gray> <white><admin></white>
+    <gray>Когда:</gray> <white><issued_at></white>
+  banned-temporary: |-
+    <gray>[<gradient:#ff8a00:#e52e71>ProxyBans</gradient><gray>]</gray> <red>Игрок <white><player></white> заблокирован временно.</red>
+    <gray>Причина:</gray> <white><reason></white>
+    <gray>Кто выдал:</gray> <white><admin></white>
+    <gray>Когда:</gray> <white><issued_at></white>
+    <gray>Осталось:</gray> <yellow><remaining></yellow>
+    <gray>Истекает:</gray> <yellow><expires_at></yellow>
+
+history:
+  empty: "<gray>[<gradient:#ff8a00:#e52e71>ProxyBans</gradient><gray>]</gray> <gray>У игрока <white><player></white> нет наказаний.</gray>"
+  header: "<gray>[<gradient:#ff8a00:#e52e71>ProxyBans</gradient><gray>]</gray> <gray>История наказаний <white><player></white>, страница <yellow><page></yellow>:</gray>"
+  entry: "<dark_gray>›</dark_gray> <yellow><action></yellow> <gray>от</gray> <white><admin></white> <dark_gray>—</dark_gray> <white><reason></white> <dark_gray>(<at>)</dark_gray>"
+
+list:
+  empty: "<gray>[<gradient:#ff8a00:#e52e71>ProxyBans</gradient><gray>]</gray> <gray>Активных блокировок нет.</gray>"
+  header: "<gray>[<gradient:#ff8a00:#e52e71>ProxyBans</gradient><gray>]</gray> <gray>Активные блокировки, страница <yellow><page></yellow>:</gray>"
+  entry-permanent: "<dark_gray>›</dark_gray> <white><player></white> <dark_gray>—</dark_gray> <red>навсегда</red> <dark_gray>—</dark_gray> <white><reason></white> <gray>(<admin>)</gray>"
+  entry-temporary: "<dark_gray>›</dark_gray> <white><player></white> <dark_gray>—</dark_gray> <yellow><remaining></yellow> <dark_gray>—</dark_gray> <white><reason></white> <gray>(<admin>)</gray>"
+
+kick:
+  not-online: "<gray>[<gradient:#ff8a00:#e52e71>ProxyBans</gradient><gray>]</gray> <red>Игрок <white><target></white> не в сети.</red>"
+  player-reason: |-
+    <red><bold>Вы были отключены</bold></red>
+
+    <gray>Причина:</gray> <white><reason></white>
+  done: "<gray>[<gradient:#ff8a00:#e52e71>ProxyBans</gradient><gray>]</gray> <green>Игрок <white><target></white> отключён.</green> <gray>Причина:</gray> <white><reason></white>"
+
+root:
+  help: |-
+    <gray>[<gradient:#ff8a00:#e52e71>ProxyBans</gradient><gray>]</gray> <gray>Доступные команды:</gray>
+    <dark_gray>›</dark_gray> <white>/pb ban <player> [длительность] <причина></white>
+    <dark_gray>›</dark_gray> <white>/pb tempban <player> <длительность> <причина></white>
+    <dark_gray>›</dark_gray> <white>/pb unban <player> [причина]</white>
+    <dark_gray>›</dark_gray> <white>/pb info <player></white>
+    <dark_gray>›</dark_gray> <white>/pb history <player> [страница]</white>
+    <dark_gray>›</dark_gray> <white>/pb list [страница]</white>
+    <gray>Длительность: <white>1d</white>, <white>2h30m</white>, <white>3M</white>, <white>perm</white></gray>
+
+errors:
+  bad-duration: "<gray>[<gradient:#ff8a00:#e52e71>ProxyBans</gradient><gray>]</gray> <red>Неверная длительность: <white><value></white></red> <gray>Примеры: 1d, 2h30m, 3M, perm</gray>"
+  tempban-requires-duration: "<gray>[<gradient:#ff8a00:#e52e71>ProxyBans</gradient><gray>]</gray> <red>Для /tempban нужна конечная длительность. Для вечного бана используйте /ban.</red>"
+  reason-required: "<gray>[<gradient:#ff8a00:#e52e71>ProxyBans</gradient><gray>]</gray> <red>Укажите причину блокировки.</red>"
+  unknown-player: "<gray>[<gradient:#ff8a00:#e52e71>ProxyBans</gradient><gray>]</gray> <red>Игрок <white><player></white> неизвестен сервису.</red>"
+  service-down: "<gray>[<gradient:#ff8a00:#e52e71>ProxyBans</gradient><gray>]</gray> <red>Сервис блокировок недоступен. Подробности в консоли.</red>"
+  service-status: "<gray>[<gradient:#ff8a00:#e52e71>ProxyBans</gradient><gray>]</gray> <red>Сервис блокировок ответил ошибкой <white><status></white>. Подробности в консоли.</red>"
+  degraded: "<gray>[<gradient:#ff8a00:#e52e71>ProxyBans</gradient><gray>]</gray> <red>Плагин не смог загрузить конфигурацию и работает в аварийном режиме.</red>"
