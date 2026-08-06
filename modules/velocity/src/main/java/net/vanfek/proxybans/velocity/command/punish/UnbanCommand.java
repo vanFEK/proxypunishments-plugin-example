@@ -1,4 +1,4 @@
-package net.vanfek.proxybans.velocity.command;
+package net.vanfek.proxybans.velocity.command.punish;
 
 import com.mojang.brigadier.Command;
 import com.mojang.brigadier.arguments.StringArgumentType;
@@ -8,6 +8,9 @@ import com.velocitypowered.api.command.BrigadierCommand;
 import com.velocitypowered.api.command.CommandSource;
 import net.vanfek.proxybans.core.i18n.Placeholders;
 import net.vanfek.proxybans.core.permission.PermissionNodes;
+import net.vanfek.proxybans.velocity.command.support.CommandContext;
+import net.vanfek.proxybans.velocity.command.support.Feedback;
+import net.vanfek.proxybans.velocity.command.support.Issuer;
 
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -22,15 +25,12 @@ public final class UnbanCommand {
                 .requires(source -> ctx.permissions().allows(source, PermissionNodes.UNBAN))
                 .then(RequiredArgumentBuilder.<CommandSource, String>argument("player", StringArgumentType.word())
                         .executes(context -> execute(
-                                ctx,
-                                context.getSource(),
-                                StringArgumentType.getString(context, "player"),
-                                ""
+                                ctx, context.getSource(),
+                                StringArgumentType.getString(context, "player"), ""
                         ))
                         .then(RequiredArgumentBuilder.<CommandSource, String>argument("reason", StringArgumentType.greedyString())
                                 .executes(context -> execute(
-                                        ctx,
-                                        context.getSource(),
+                                        ctx, context.getSource(),
                                         StringArgumentType.getString(context, "player"),
                                         StringArgumentType.getString(context, "reason")
                                 ))));
@@ -45,12 +45,12 @@ public final class UnbanCommand {
                 .thenCompose(resolved -> resolved
                         .map(uuid -> lift(ctx, source, playerName, uuid, reason, issuer))
                         .orElseGet(() -> {
-                            CommandUtils.tell(ctx, source, "errors.unknown-player", Placeholders.of("player", playerName));
+                            Feedback.tell(ctx, source, "errors.unknown-player", Placeholders.of("player", playerName));
 
                             return CompletableFuture.completedFuture(null);
                         }))
                 .exceptionally(throwable -> {
-                    CommandUtils.reportFailure(ctx, source, throwable);
+                    Feedback.reportFailure(ctx, source, throwable);
 
                     return null;
                 });
@@ -59,18 +59,13 @@ public final class UnbanCommand {
     }
 
     private static CompletableFuture<Void> lift(
-            CommandContext ctx,
-            CommandSource source,
-            String playerName,
-            UUID uuid,
-            String reason,
-            Issuer issuer
+            CommandContext ctx, CommandSource source,
+            String playerName, UUID uuid,
+            String reason, Issuer issuer
     ) {
         return ctx.bans().liftBan(uuid, issuer.uuid(), issuer.name(), reason)
-                .thenRun(() -> CommandUtils.tell(
-                        ctx,
-                        source,
-                        "unban.success",
+                .thenRun(() -> Feedback.tell(
+                        ctx, source, "unban.success",
                         Placeholders.of("player", playerName),
                         Placeholders.of("reason", reason.isBlank() ? "—" : reason)
                 ));

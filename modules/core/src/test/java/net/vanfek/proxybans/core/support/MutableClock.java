@@ -5,10 +5,6 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneId;
 
-/**
- * Test clock that only moves when a test says so. Lets TTL behaviour be asserted exactly instead of
- * being approximated with sleeps.
- */
 public final class MutableClock extends Clock {
 
     private final ZoneId zone;

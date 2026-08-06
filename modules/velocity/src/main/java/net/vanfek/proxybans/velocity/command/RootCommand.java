@@ -5,16 +5,18 @@ import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.velocitypowered.api.command.BrigadierCommand;
 import com.velocitypowered.api.command.CommandSource;
 import com.velocitypowered.api.proxy.ProxyServer;
+import net.vanfek.proxybans.velocity.command.lookup.BanHistoryCommand;
+import net.vanfek.proxybans.velocity.command.lookup.BanInfoCommand;
+import net.vanfek.proxybans.velocity.command.lookup.BanListCommand;
+import net.vanfek.proxybans.velocity.command.punish.BanCommand;
+import net.vanfek.proxybans.velocity.command.punish.KickCommand;
+import net.vanfek.proxybans.velocity.command.punish.TempBanCommand;
+import net.vanfek.proxybans.velocity.command.punish.UnbanCommand;
+import net.vanfek.proxybans.velocity.command.support.CommandContext;
+import net.vanfek.proxybans.velocity.command.support.Feedback;
 
 import java.util.function.Function;
 
-/**
- * {@code /pb <subcommand>}.
- *
- * <p>Each alias gets its own freshly built subtree rather than a copy of another node's children.
- * Sharing Brigadier nodes between trees couples their requirements and redirects in ways that only
- * surface as missing subcommands at runtime.
- */
 public final class RootCommand {
 
     public static final String ROOT_LITERAL = "pb";
@@ -26,27 +28,26 @@ public final class RootCommand {
     public static BrigadierCommand build(CommandContext ctx, ProxyServer proxy) {
         LiteralArgumentBuilder<CommandSource> root = LiteralArgumentBuilder.<CommandSource>literal(ROOT_LITERAL)
                 .executes(context -> {
-                    CommandUtils.tell(ctx, context.getSource(), "root.help");
+                    Feedback.tell(ctx, context.getSource(), "root.help");
 
                     return Command.SINGLE_SUCCESS;
                 });
 
-        addSubcommands(root, literal -> BanCommand.build(ctx, proxy, literal), "ban", "permban");
-        addSubcommands(root, literal -> TempBanCommand.build(ctx, proxy, literal), "tempban", "tban");
-        addSubcommands(root, literal -> UnbanCommand.build(ctx, literal), "unban", "pardon");
-        addSubcommands(root, literal -> BanInfoCommand.build(ctx, proxy, literal), "info", "check");
-        addSubcommands(root, literal -> BanHistoryCommand.build(ctx, proxy, literal), "history", "log");
-        addSubcommands(root, literal -> BanListCommand.build(ctx, literal), "list", "bans");
+        addFreshSubcommands(root, literal -> BanCommand.build(ctx, proxy, literal), "ban", "permban");
+        addFreshSubcommands(root, literal -> TempBanCommand.build(ctx, proxy, literal), "tempban", "tban");
+        addFreshSubcommands(root, literal -> UnbanCommand.build(ctx, literal), "unban", "pardon");
+        addFreshSubcommands(root, literal -> BanInfoCommand.build(ctx, proxy, literal), "info", "check");
+        addFreshSubcommands(root, literal -> BanHistoryCommand.build(ctx, proxy, literal), "history", "log");
+        addFreshSubcommands(root, literal -> BanListCommand.build(ctx, literal), "list", "bans");
 
         root.then(KickCommand.build(ctx, proxy).getNode());
 
         return new BrigadierCommand(root);
     }
 
-    private static void addSubcommands(
+    private static void addFreshSubcommands(
             LiteralArgumentBuilder<CommandSource> root,
-            Function<String, BrigadierCommand> factory,
-            String... literals
+            Function<String, BrigadierCommand> factory, String... literals
     ) {
         for (String literal : literals) {
             root.then(factory.apply(literal).getNode());

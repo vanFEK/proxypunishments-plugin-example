@@ -15,12 +15,6 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
-/**
- * Caching decorator over {@link BansClient}.
- *
- * <p>The cache is what keeps a login from waiting on a network round trip, and the stale fallback is
- * what keeps the proxy usable when the service is down.
- */
 public final class BanServiceImpl implements BanService, AutoCloseable {
 
     private final BansClient http;
@@ -54,10 +48,8 @@ public final class BanServiceImpl implements BanService, AutoCloseable {
     @Override
     public @NotNull CompletableFuture<ActiveBanView> issueBan(
             @NotNull UUID playerUuid,
-            @NotNull UUID issuedByUuid,
-            @NotNull String issuedByName,
-            @NotNull String reason,
-            @Nullable Duration duration
+            @NotNull UUID issuedByUuid, @NotNull String issuedByName,
+            @NotNull String reason, @Nullable Duration duration
     ) {
         return this.http.issueBan(playerUuid, issuedByUuid, issuedByName, reason, duration)
                 .thenApply(ban -> {
@@ -70,8 +62,7 @@ public final class BanServiceImpl implements BanService, AutoCloseable {
     @Override
     public @NotNull CompletableFuture<Void> liftBan(
             @NotNull UUID playerUuid,
-            @NotNull UUID liftedByUuid,
-            @NotNull String liftedByName,
+            @NotNull UUID liftedByUuid, @NotNull String liftedByName,
             @NotNull String reason
     ) {
         return this.http.liftBan(playerUuid, liftedByUuid, liftedByName, reason)
@@ -98,10 +89,6 @@ public final class BanServiceImpl implements BanService, AutoCloseable {
         this.cache.invalidate(playerUuid);
     }
 
-    /**
-     * Not part of the public {@link BanService} contract — only the login listener needs it, and only
-     * in {@code local} mode.
-     */
     public @NotNull CompletableFuture<Void> rememberPlayer(@NotNull UUID uuid, @NotNull String login) {
         return this.http.rememberPlayer(uuid, login);
     }

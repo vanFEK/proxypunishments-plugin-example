@@ -1,4 +1,4 @@
-package net.vanfek.proxybans.velocity.command;
+package net.vanfek.proxybans.velocity.command.punish;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -7,12 +7,6 @@ import java.time.Duration;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-/**
- * Regression tests for the {@code /ban} argument split.
- *
- * <p>The failure this guards against is subtle: with a word-typed duration argument,
- * {@code /ban Steve cheating with hacks} used to answer "invalid duration: cheating" and ban nobody.
- */
 class BanArgumentsTest {
 
     @Test

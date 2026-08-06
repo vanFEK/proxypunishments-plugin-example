@@ -10,9 +10,6 @@ public final class PermissionNodes {
     public static final String LIST = "proxybans.command.list";
     public static final String KICK = "proxybans.command.kick";
 
-    /**
-     * Aggregate node: holding it grants every command node above.
-     */
     public static final String ADMIN = "proxybans.admin";
 
     private PermissionNodes() {

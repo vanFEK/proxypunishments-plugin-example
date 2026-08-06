@@ -4,9 +4,6 @@ import org.jetbrains.annotations.NotNull;
 
 import java.time.Duration;
 
-/**
- * Renders a duration for players, in the coarsest units that still carry information.
- */
 public final class DurationFormatter {
 
     private static final long SECONDS_PER_DAY = 86_400L;

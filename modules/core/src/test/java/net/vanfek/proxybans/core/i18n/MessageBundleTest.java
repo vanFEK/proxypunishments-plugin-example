@@ -27,8 +27,7 @@ class MessageBundleTest {
     void fallsBackToBundledDefaultsForUnknownKeys(@TempDir Path directory) throws IOException {
         Files.writeString(
                 directory.resolve("messages.yml"),
-                "errors:\n  service-down: \"custom outage text\"\n",
-                StandardCharsets.UTF_8
+                "errors:\n  service-down: \"custom outage text\"\n", StandardCharsets.UTF_8
         );
 
         MessageBundle bundle = MessageBundle.load(directory);
@@ -43,8 +42,7 @@ class MessageBundleTest {
     void doesNotParsePlaceholderValuesAsMarkup(@TempDir Path directory) throws IOException {
         Files.writeString(
                 directory.resolve("messages.yml"),
-                "test:\n  line: \"reason: <reason>\"\n",
-                StandardCharsets.UTF_8
+                "test:\n  line: \"reason: <reason>\"\n", StandardCharsets.UTF_8
         );
 
         MessageBundle bundle = MessageBundle.load(directory);

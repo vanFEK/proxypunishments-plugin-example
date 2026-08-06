@@ -12,16 +12,7 @@ import java.time.Instant;
 import java.util.Optional;
 import java.util.UUID;
 
-/**
- * Two-tier cache of ban decisions.
- *
- * <p>Entries younger than {@code activeTtl} are served directly. Older entries are kept until
- * {@code staleTtl} purely as a fallback for when the service is unreachable — a stale "banned" is a
- * far better answer than letting a banned player in because the backend blinked.
- *
- * <p>Caffeine evicts a little later than {@code staleTtl} so that an entry is still readable at the
- * exact moment it stops being usable; otherwise the stale window would be unobservable in tests.
- */
+/** Fresh entries are served directly; stale ones exist only to keep bans enforced while the service is unreachable. */
 public final class BanCache {
 
     private static final Duration EVICTION_GRACE = Duration.ofMinutes(1);

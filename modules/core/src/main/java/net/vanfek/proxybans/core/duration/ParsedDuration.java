@@ -6,14 +6,6 @@ import org.jetbrains.annotations.Nullable;
 import java.time.Duration;
 import java.util.Optional;
 
-/**
- * Result of reading a duration token typed by a moderator.
- *
- * <p>A permanent ban and a timed ban are different outcomes, not "a duration that happens to be
- * missing", so they are modelled explicitly instead of leaking a bare {@code null} to callers.
- *
- * @param duration {@code null} means permanent
- */
 public record ParsedDuration(@Nullable Duration duration) {
 
     private static final ParsedDuration PERMANENT = new ParsedDuration(null);

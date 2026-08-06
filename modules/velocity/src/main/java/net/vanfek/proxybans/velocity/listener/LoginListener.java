@@ -22,20 +22,7 @@ import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 
-/**
- * Decides whether a connecting player is allowed in.
- *
- * <p>Runs as an {@link EventTask}, so the lookup never blocks a Netty thread. The two failure
- * policies are deliberate:
- *
- * <ul>
- *   <li><b>fail-open</b> — the service is unreachable and nothing usable is cached, so the player is
- *       let in and the incident is logged. One banned player slipping through beats locking the
- *       entire network out because an internal service restarted.</li>
- *   <li><b>stale cache</b> — handled a layer below, in the ban service: an expired-but-recent answer
- *       is preferred over no answer at all.</li>
- * </ul>
- */
+// Fail-open: one banned player slipping in beats locking the network out; the ban service's stale cache covers brief outages.
 public final class LoginListener {
 
     private final BanServiceImpl bans;
@@ -45,10 +32,8 @@ public final class LoginListener {
     private final Logger logger;
 
     public LoginListener(
-            @NotNull BanServiceImpl bans,
-            @NotNull MessageBundle messages,
-            @NotNull PluginConfig.Login config,
-            @NotNull Clock clock,
+            @NotNull BanServiceImpl bans, @NotNull MessageBundle messages,
+            @NotNull PluginConfig.Login config, @NotNull Clock clock,
             @NotNull Logger logger
     ) {
         this.bans = bans;
@@ -63,9 +48,6 @@ public final class LoginListener {
         return EventTask.resumeWhenComplete(handle(event));
     }
 
-    /**
-     * Visible for tests: the whole decision as one future, without Velocity's event plumbing.
-     */
     public @NotNull CompletableFuture<Void> handle(@NotNull LoginEvent event) {
         Player player = event.getPlayer();
 
@@ -95,8 +77,7 @@ public final class LoginListener {
 
         return this.bans.rememberPlayer(player.getUniqueId(), player.getUsername())
                 .exceptionally(throwable -> {
-                    this.logger.warn("Failed to remember player {}: {}",
-                            player.getUsername(), unwrap(throwable).getMessage());
+                    this.logger.warn("Failed to remember player {}: {}", player.getUsername(), unwrap(throwable).getMessage());
 
                     return null;
                 });
@@ -112,8 +93,7 @@ public final class LoginListener {
             return;
         }
 
-        this.logger.error("Ban lookup failed for {} and fail-open is disabled, denying login: {}",
-                username, cause.getMessage());
+        this.logger.error("Ban lookup failed for {} and fail-open is disabled, denying login: {}", username, cause.getMessage());
 
         event.setResult(ComponentResult.denied(this.messages.render("login.service-unavailable")));
     }
@@ -131,9 +111,7 @@ public final class LoginListener {
                 .orElse(Duration.ZERO);
 
         return this.messages.render(
-                key,
-                Placeholders.of("reason", ban.reason()),
-                Placeholders.of("admin", ban.issuedByName()),
+                key, Placeholders.of("reason", ban.reason()), Placeholders.of("admin", ban.issuedByName()),
                 Placeholders.of("remaining", ban.isPermanent() ? "—" : DurationFormatter.human(remaining)),
                 Placeholders.of("expires_at", ban.expiry().map(Instant::toString).orElse("—"))
         );

@@ -20,13 +20,7 @@ import java.nio.file.StandardCopyOption;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-/**
- * Loads {@code messages.yml} and renders MiniMessage templates.
- *
- * <p>The bundled defaults are always loaded as a second layer behind the operator's file. Without
- * that, every key added in a plugin update would render as a placeholder error on servers whose
- * {@code messages.yml} was written by an earlier version.
- */
+/** The bundled defaults sit behind the operator's file so keys added in later versions still resolve. */
 public final class MessageBundle {
 
     private static final String MESSAGES_FILE = "messages.yml";
@@ -64,9 +58,6 @@ public final class MessageBundle {
         return new MessageBundle(templates, defaults);
     }
 
-    /**
-     * Visible for tests, and for any embedding that wants the bundled strings without touching disk.
-     */
     public static @NotNull MessageBundle ofDefaults() throws IOException {
         Map<String, String> defaults = loadDefaults();
 
@@ -115,8 +106,7 @@ public final class MessageBundle {
         return defaults;
     }
 
-    private static void flatten(CommentedConfigurationNode node, String prefix, Map<String, String> out)
-            throws ConfigurateException {
+    private static void flatten(CommentedConfigurationNode node, String prefix, Map<String, String> out) throws ConfigurateException {
         if (node.isMap()) {
             for (Map.Entry<Object, CommentedConfigurationNode> entry : node.childrenMap().entrySet()) {
                 String key = prefix.isEmpty() ? entry.getKey().toString() : prefix + "." + entry.getKey();

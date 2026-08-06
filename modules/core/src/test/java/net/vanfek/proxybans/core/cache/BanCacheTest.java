@@ -94,14 +94,10 @@ class BanCacheTest {
     private ActiveBanView ban() {
         return new ActiveBanView(
                 1L,
-                PLAYER,
-                "Steve",
-                UUID.randomUUID(),
-                "Admin",
+                PLAYER, "Steve",
+                UUID.randomUUID(), "Admin",
                 "griefing",
-                this.clock.instant(),
-                null,
-                BanType.PERMANENT
+                this.clock.instant(), null, BanType.PERMANENT
         );
     }
 

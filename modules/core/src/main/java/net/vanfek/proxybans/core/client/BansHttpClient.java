@@ -28,13 +28,7 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 
-/**
- * Thin asynchronous client for the bans service.
- *
- * <p>Every public method returns a future that fails with {@link BansHttpException} and never throws
- * synchronously — callers run inside Velocity event tasks and command handlers, where a synchronous
- * throw would escape the future's error handling entirely.
- */
+/** No method here throws synchronously: every failure arrives as a {@link BansHttpException} inside the future. */
 public final class BansHttpClient implements BansClient {
 
     private static final String SERVICE_TOKEN_HEADER = "X-Service-Token";
@@ -72,10 +66,8 @@ public final class BansHttpClient implements BansClient {
     @Override
     public @NotNull CompletableFuture<ActiveBanView> issueBan(
             @NotNull UUID playerUuid,
-            @NotNull UUID issuedByUuid,
-            @NotNull String issuedByName,
-            @NotNull String reason,
-            @Nullable Duration duration
+            @NotNull UUID issuedByUuid, @NotNull String issuedByName,
+            @NotNull String reason, @Nullable Duration duration
     ) {
         JsonObject payload = new JsonObject();
         payload.addProperty("playerUuid", playerUuid.toString());
@@ -88,8 +80,7 @@ public final class BansHttpClient implements BansClient {
         }
 
         return send(
-                "/api/v1/bans",
-                builder -> builder.POST(body(payload)).header("Content-Type", CONTENT_TYPE),
+                "/api/v1/bans", builder -> builder.POST(body(payload)).header("Content-Type", CONTENT_TYPE),
                 response -> {
                     requireSuccess(response);
 
@@ -101,8 +92,7 @@ public final class BansHttpClient implements BansClient {
     @Override
     public @NotNull CompletableFuture<Void> liftBan(
             @NotNull UUID playerUuid,
-            @NotNull UUID liftedByUuid,
-            @NotNull String liftedByName,
+            @NotNull UUID liftedByUuid, @NotNull String liftedByName,
             @NotNull String reason
     ) {
         JsonObject payload = new JsonObject();
@@ -111,8 +101,7 @@ public final class BansHttpClient implements BansClient {
         payload.addProperty("reason", reason);
 
         return send(
-                "/api/v1/bans/" + playerUuid,
-                builder -> builder.method("DELETE", body(payload)).header("Content-Type", CONTENT_TYPE),
+                "/api/v1/bans/" + playerUuid, builder -> builder.method("DELETE", body(payload)).header("Content-Type", CONTENT_TYPE),
                 response -> {
                     requireSuccess(response);
 
@@ -169,8 +158,7 @@ public final class BansHttpClient implements BansClient {
         payload.addProperty("login", login);
 
         return send(
-                "/api/v1/known-players",
-                builder -> builder.POST(body(payload)).header("Content-Type", CONTENT_TYPE),
+                "/api/v1/known-players", builder -> builder.POST(body(payload)).header("Content-Type", CONTENT_TYPE),
                 response -> {
                     requireSuccess(response);
 
@@ -190,8 +178,7 @@ public final class BansHttpClient implements BansClient {
 
     private <T> CompletableFuture<T> send(
             String path,
-            Function<HttpRequest.Builder, HttpRequest.Builder> configurer,
-            Function<HttpResponse<String>, T> mapper
+            Function<HttpRequest.Builder, HttpRequest.Builder> configurer, Function<HttpResponse<String>, T> mapper
     ) {
         HttpRequest request;
 
@@ -263,26 +250,19 @@ public final class BansHttpClient implements BansClient {
     private static ActiveBanView parseActiveBan(JsonObject json) {
         return new ActiveBanView(
                 readLong(json, "id"),
-                readUuid(json, "playerUuid"),
-                readNullableString(json, "playerName"),
-                readUuid(json, "issuedByUuid"),
-                readString(json, "issuedByName"),
+                readUuid(json, "playerUuid"), readNullableString(json, "playerName"),
+                readUuid(json, "issuedByUuid"), readString(json, "issuedByName"),
                 readString(json, "reason"),
-                readInstant(json, "issuedAt"),
-                readNullableInstant(json, "expiresAt"),
-                readEnum(json, "type", BanType.class)
+                readInstant(json, "issuedAt"), readNullableInstant(json, "expiresAt"), readEnum(json, "type", BanType.class)
         );
     }
 
     private static PunishmentHistoryEntry parseHistoryEntry(JsonObject json) {
         return new PunishmentHistoryEntry(
                 readUuid(json, "playerUuid"),
-                readUuid(json, "issuedByUuid"),
-                readString(json, "issuedByName"),
-                readEnum(json, "action", PunishmentHistoryEntry.Action.class),
-                readString(json, "reason"),
-                readInstant(json, "happenedAt"),
-                readNullableInstant(json, "expiresAt")
+                readUuid(json, "issuedByUuid"), readString(json, "issuedByName"),
+                readEnum(json, "action", PunishmentHistoryEntry.Action.class), readString(json, "reason"),
+                readInstant(json, "happenedAt"), readNullableInstant(json, "expiresAt")
         );
     }
 

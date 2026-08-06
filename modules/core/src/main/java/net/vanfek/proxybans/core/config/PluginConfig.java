@@ -34,17 +34,9 @@ public class PluginConfig {
     @ConfigSerializable
     public static class Login {
 
-        /**
-         * When the service is unreachable and no usable cached answer exists, let the player in
-         * anyway. Keeping a whole network locked out because one internal service restarted is
-         * usually worse than briefly letting one banned player through.
-         */
+        // Admits the player when the service is down and nothing usable is cached: locking out the network is worse.
         public boolean failOpen = true;
 
-        /**
-         * Report the UUID↔name pair to the service on login. Only meaningful in {@code local} mode,
-         * where the service has no other way of learning who a player is.
-         */
         public boolean rememberPlayer = true;
 
     }

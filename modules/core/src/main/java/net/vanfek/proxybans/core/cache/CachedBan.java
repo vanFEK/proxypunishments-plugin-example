@@ -7,14 +7,6 @@ import org.jetbrains.annotations.Nullable;
 import java.time.Instant;
 import java.util.Optional;
 
-/**
- * A cached answer to "is this player banned right now?".
- *
- * <p>"No ban" is cached just as deliberately as "banned" — otherwise every login of an innocent
- * player would still hit the service.
- *
- * @param ban {@code null} means the service answered "not banned"
- */
 public record CachedBan(@Nullable ActiveBanView ban, @NotNull Instant cachedAt) {
 
     public static @NotNull CachedBan present(@NotNull ActiveBanView ban, @NotNull Instant now) {

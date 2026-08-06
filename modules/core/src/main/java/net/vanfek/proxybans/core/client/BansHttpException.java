@@ -3,12 +3,6 @@ package net.vanfek.proxybans.core.client;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-/**
- * Any failure while talking to the bans service.
- *
- * <p>The response body is kept separate from the message on purpose: the message is safe to show to
- * staff in chat, the body is for the log only and may contain internals of the service.
- */
 public class BansHttpException extends RuntimeException {
 
     private static final int NO_STATUS = -1;

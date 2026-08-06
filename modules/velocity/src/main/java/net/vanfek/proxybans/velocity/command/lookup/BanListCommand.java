@@ -1,4 +1,4 @@
-package net.vanfek.proxybans.velocity.command;
+package net.vanfek.proxybans.velocity.command.lookup;
 
 import com.mojang.brigadier.Command;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
@@ -10,6 +10,8 @@ import net.vanfek.proxybans.api.ActiveBanView;
 import net.vanfek.proxybans.core.duration.DurationFormatter;
 import net.vanfek.proxybans.core.i18n.Placeholders;
 import net.vanfek.proxybans.core.permission.PermissionNodes;
+import net.vanfek.proxybans.velocity.command.support.CommandContext;
+import net.vanfek.proxybans.velocity.command.support.Feedback;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -29,8 +31,7 @@ public final class BanListCommand {
                 .executes(context -> execute(ctx, context.getSource(), 1))
                 .then(RequiredArgumentBuilder.<CommandSource, Integer>argument("page", IntegerArgumentType.integer(1, MAX_PAGE))
                         .executes(context -> execute(
-                                ctx,
-                                context.getSource(),
+                                ctx, context.getSource(),
                                 IntegerArgumentType.getInteger(context, "page")
                         )));
 
@@ -43,7 +44,7 @@ public final class BanListCommand {
         ctx.bans().listActive(PAGE_SIZE, offset)
                 .thenAccept(bans -> render(ctx, source, page, bans))
                 .exceptionally(throwable -> {
-                    CommandUtils.reportFailure(ctx, source, throwable);
+                    Feedback.reportFailure(ctx, source, throwable);
 
                     return null;
                 });
@@ -53,12 +54,12 @@ public final class BanListCommand {
 
     private static void render(CommandContext ctx, CommandSource source, int page, List<ActiveBanView> bans) {
         if (bans.isEmpty()) {
-            CommandUtils.tell(ctx, source, "list.empty");
+            Feedback.tell(ctx, source, "list.empty");
 
             return;
         }
 
-        CommandUtils.tell(ctx, source, "list.header", Placeholders.of("page", page));
+        Feedback.tell(ctx, source, "list.header", Placeholders.of("page", page));
 
         Instant now = ctx.clock().instant();
 
@@ -70,14 +71,10 @@ public final class BanListCommand {
                     .map(expiry -> DurationFormatter.human(Duration.between(now, expiry)))
                     .orElse("—");
 
-            CommandUtils.tell(
-                    ctx,
-                    source,
-                    key,
-                    Placeholders.of("player", ban.displayName()),
-                    Placeholders.of("reason", ban.reason()),
-                    Placeholders.of("admin", ban.issuedByName()),
-                    Placeholders.of("remaining", remaining)
+            Feedback.tell(
+                    ctx, source, key,
+                    Placeholders.of("player", ban.displayName()), Placeholders.of("reason", ban.reason()),
+                    Placeholders.of("admin", ban.issuedByName()), Placeholders.of("remaining", remaining)
             );
         }
     }

@@ -1,4 +1,4 @@
-package net.vanfek.proxybans.velocity.command;
+package net.vanfek.proxybans.velocity.command.support;
 
 import net.vanfek.proxybans.core.BanServiceImpl;
 import net.vanfek.proxybans.core.i18n.MessageBundle;
@@ -7,14 +7,9 @@ import org.slf4j.Logger;
 
 import java.time.Clock;
 
-/**
- * Everything a command needs, passed as one value so command builders stay static and testable.
- */
 public record CommandContext(
-        BanServiceImpl bans,
-        MessageBundle messages,
-        PermissionChecker permissions,
-        Clock clock,
+        BanServiceImpl bans, MessageBundle messages,
+        PermissionChecker permissions, Clock clock,
         Logger logger
 ) {
 }

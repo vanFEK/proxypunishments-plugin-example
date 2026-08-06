@@ -1,4 +1,4 @@
-package net.vanfek.proxybans.velocity.command;
+package net.vanfek.proxybans.velocity.command.lookup;
 
 import com.mojang.brigadier.Command;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
@@ -11,6 +11,9 @@ import com.velocitypowered.api.proxy.ProxyServer;
 import net.vanfek.proxybans.api.PunishmentHistoryEntry;
 import net.vanfek.proxybans.core.i18n.Placeholders;
 import net.vanfek.proxybans.core.permission.PermissionNodes;
+import net.vanfek.proxybans.velocity.command.support.CommandContext;
+import net.vanfek.proxybans.velocity.command.support.Feedback;
+import net.vanfek.proxybans.velocity.command.support.PlayerSuggestions;
 
 import java.time.Instant;
 import java.util.List;
@@ -29,17 +32,14 @@ public final class BanHistoryCommand {
         LiteralArgumentBuilder<CommandSource> node = LiteralArgumentBuilder.<CommandSource>literal(literal)
                 .requires(source -> ctx.permissions().allows(source, PermissionNodes.HISTORY))
                 .then(RequiredArgumentBuilder.<CommandSource, String>argument("player", StringArgumentType.word())
-                        .suggests((context, builder) -> CommandUtils.suggestPlayers(proxy, builder))
+                        .suggests((context, builder) -> PlayerSuggestions.matching(proxy, builder))
                         .executes(context -> execute(
-                                ctx,
-                                context.getSource(),
-                                StringArgumentType.getString(context, "player"),
-                                1
+                                ctx, context.getSource(),
+                                StringArgumentType.getString(context, "player"), 1
                         ))
                         .then(RequiredArgumentBuilder.<CommandSource, Integer>argument("page", IntegerArgumentType.integer(1, MAX_PAGE))
                                 .executes(context -> execute(
-                                        ctx,
-                                        context.getSource(),
+                                        ctx, context.getSource(),
                                         StringArgumentType.getString(context, "player"),
                                         IntegerArgumentType.getInteger(context, "page")
                                 ))));
@@ -54,12 +54,12 @@ public final class BanHistoryCommand {
                 .thenCompose(resolved -> resolved
                         .map(uuid -> print(ctx, source, playerName, uuid, page, offset))
                         .orElseGet(() -> {
-                            CommandUtils.tell(ctx, source, "errors.unknown-player", Placeholders.of("player", playerName));
+                            Feedback.tell(ctx, source, "errors.unknown-player", Placeholders.of("player", playerName));
 
                             return CompletableFuture.completedFuture(null);
                         }))
                 .exceptionally(throwable -> {
-                    CommandUtils.reportFailure(ctx, source, throwable);
+                    Feedback.reportFailure(ctx, source, throwable);
 
                     return null;
                 });
@@ -68,26 +68,20 @@ public final class BanHistoryCommand {
     }
 
     private static CompletableFuture<Void> print(
-            CommandContext ctx,
-            CommandSource source,
-            String playerName,
-            UUID uuid,
-            int page,
-            int offset
+            CommandContext ctx, CommandSource source,
+            String playerName, UUID uuid,
+            int page, int offset
     ) {
         return ctx.bans().history(uuid, PAGE_SIZE, offset).thenAccept(entries -> {
             if (entries.isEmpty()) {
-                CommandUtils.tell(ctx, source, "history.empty", Placeholders.of("player", playerName));
+                Feedback.tell(ctx, source, "history.empty", Placeholders.of("player", playerName));
 
                 return;
             }
 
-            CommandUtils.tell(
-                    ctx,
-                    source,
-                    "history.header",
-                    Placeholders.of("player", playerName),
-                    Placeholders.of("page", page)
+            Feedback.tell(
+                    ctx, source, "history.header",
+                    Placeholders.of("player", playerName), Placeholders.of("page", page)
             );
 
             renderEntries(ctx, source, entries);
@@ -96,14 +90,10 @@ public final class BanHistoryCommand {
 
     private static void renderEntries(CommandContext ctx, CommandSource source, List<PunishmentHistoryEntry> entries) {
         for (PunishmentHistoryEntry entry : entries) {
-            CommandUtils.tell(
-                    ctx,
-                    source,
-                    "history.entry",
-                    Placeholders.of("action", entry.action().name()),
-                    Placeholders.of("admin", entry.issuedByName()),
-                    Placeholders.of("reason", entry.reason()),
-                    Placeholders.of("at", entry.happenedAt()),
+            Feedback.tell(
+                    ctx, source, "history.entry",
+                    Placeholders.of("action", entry.action().name()), Placeholders.of("admin", entry.issuedByName()),
+                    Placeholders.of("reason", entry.reason()), Placeholders.of("at", entry.happenedAt()),
                     Placeholders.of("expires_at", entry.expiry().map(Instant::toString).orElse("—"))
             );
         }

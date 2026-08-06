@@ -9,19 +9,9 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-/**
- * Parses moderator-typed duration tokens such as {@code 1d}, {@code 2h30m}, {@code 3M} or {@code perm}.
- *
- * <p>Unit letters are case sensitive on purpose: {@code m} is minutes and {@code M} is months. The
- * input is therefore never lower-cased before matching — doing so silently turns "3 months" into
- * "3 minutes".
- */
+/** Unit letters are case sensitive — {@code m} is minutes, {@code M} is months — so input is never lower-cased. */
 public final class DurationParser {
 
-    /**
-     * Upper bound for a timed ban. Anything longer is a permanent ban in practice, and accepting it
-     * only invites overflow and nonsensical expiry timestamps.
-     */
     public static final Duration MAX = Duration.ofDays(3650);
 
     private static final Pattern TOKEN = Pattern.compile("(\\d{1,12})\\s*([smhdwMy])");
@@ -31,22 +21,10 @@ public final class DurationParser {
     private DurationParser() {
     }
 
-    /**
-     * Strict parse for input that is already known to be a duration.
-     *
-     * @throws IllegalArgumentException if the input is not a well-formed duration token
-     */
     public static @NotNull ParsedDuration parse(@NotNull String input) {
         return tryParse(input).orElseThrow(() -> new IllegalArgumentException("Invalid duration format: " + input));
     }
 
-    /**
-     * Lenient parse used when the caller cannot know whether the argument is a duration at all — for
-     * example the first word after the player name in {@code /ban}, which may just as well be the
-     * start of the reason.
-     *
-     * @return empty when the input is not a duration, so the caller can fall back to treating it as text
-     */
     public static @NotNull Optional<ParsedDuration> tryParse(@NotNull String input) {
         String trimmed = input.trim();
 

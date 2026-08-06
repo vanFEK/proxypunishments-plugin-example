@@ -9,11 +9,7 @@ public final class Placeholders {
     private Placeholders() {
     }
 
-    /**
-     * Always {@link Placeholder#unparsed} — ban reasons and player names are attacker-controlled, and
-     * parsing them as MiniMessage would let a player inject formatting, click actions or hover text
-     * into staff-facing messages.
-     */
+    // Unparsed on purpose: a ban reason must never be able to smuggle MiniMessage markup into a rendered message.
     public static @NotNull TagResolver of(@NotNull String key, @NotNull Object value) {
         return Placeholder.unparsed(key, String.valueOf(value));
     }

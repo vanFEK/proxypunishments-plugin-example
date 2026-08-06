@@ -19,8 +19,8 @@ import net.vanfek.proxybans.core.i18n.MessageBundle;
 import net.vanfek.proxybans.core.permission.LuckPermsPermissionChecker;
 import net.vanfek.proxybans.core.permission.NativePermissionChecker;
 import net.vanfek.proxybans.core.permission.PermissionChecker;
-import net.vanfek.proxybans.velocity.command.CommandContext;
 import net.vanfek.proxybans.velocity.command.CommandRegistrar;
+import net.vanfek.proxybans.velocity.command.support.CommandContext;
 import net.vanfek.proxybans.velocity.listener.LoginListener;
 import org.slf4j.Logger;
 
@@ -56,7 +56,7 @@ public final class ProxyBansPlugin {
 
     @Subscribe
     public void onProxyInitialize(ProxyInitializeEvent event) {
-        PluginConfig config = loadConfig();
+        PluginConfig config = loadConfigOrBuiltInDefaults();
         MessageBundle messages;
 
         try {
@@ -73,12 +73,11 @@ public final class ProxyBansPlugin {
         this.banService = new BanServiceImpl(httpClient, cache);
 
         PermissionChecker permissions = resolvePermissionChecker();
-        CommandContext context = new CommandContext(this.banService, messages, permissions, this.clock, this.logger);
 
-        this.proxy.getEventManager().register(
-                this,
-                new LoginListener(this.banService, messages, config.login, this.clock, this.logger)
-        );
+        CommandContext context = new CommandContext(this.banService, messages, permissions, this.clock, this.logger);
+        LoginListener loginListener = new LoginListener(this.banService, messages, config.login, this.clock, this.logger);
+
+        this.proxy.getEventManager().register(this, loginListener);
 
         new CommandRegistrar(this.proxy, context, config.commands.registerTopLevelAliases, this.logger).register(this);
 
@@ -96,15 +95,7 @@ public final class ProxyBansPlugin {
         this.banService.close();
     }
 
-    /**
-     * Falls back to the bundled defaults rather than leaving the plugin half-initialised.
-     *
-     * <p>A plugin that logs an error and then registers no login listener looks alive while quietly
-     * letting every banned player in. With defaults the normal machinery still runs: the service is
-     * unreachable at the default address, so the configured fail-open policy applies and every login
-     * is logged.
-     */
-    private PluginConfig loadConfig() {
+    private PluginConfig loadConfigOrBuiltInDefaults() {
         try {
             return new ConfigLoader(this.dataDirectory).load();
         } catch (IOException | RuntimeException ex) {

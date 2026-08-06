@@ -9,10 +9,6 @@ import java.lang.reflect.Type;
 import java.time.Duration;
 import java.time.format.DateTimeParseException;
 
-/**
- * Reads ISO-8601 durations ({@code PT30S}, {@code PT30M}) from YAML. Configurate has no built-in
- * serializer for {@link Duration}, and without this the whole config silently fails to deserialize.
- */
 public final class DurationTypeSerializer implements TypeSerializer<Duration> {
 
     public static final DurationTypeSerializer INSTANCE = new DurationTypeSerializer();

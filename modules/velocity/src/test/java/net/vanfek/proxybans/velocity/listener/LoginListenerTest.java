@@ -23,22 +23,19 @@ import java.nio.file.Path;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
+import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-/**
- * The login decision is the one place where a mistake is either "banned players get in" or "nobody
- * gets in", so each policy is pinned down explicitly.
- */
 class LoginListenerTest {
 
     private static final UUID PLAYER_UUID = UUID.fromString("11111111-2222-3333-4444-555555555555");
@@ -87,14 +84,9 @@ class LoginListenerTest {
     @DisplayName("a ban whose expiry has passed no longer blocks the login")
     void allowsLoginWhenTheBanHasExpired() {
         ActiveBanView expired = new ActiveBanView(
-                1L,
-                PLAYER_UUID,
-                "Steve",
-                UUID.randomUUID(),
-                "Admin",
-                "griefing",
-                NOW.minus(Duration.ofDays(2)),
-                NOW.minus(Duration.ofDays(1)),
+                1L, PLAYER_UUID, "Steve",
+                UUID.randomUUID(), "Admin",
+                "griefing", NOW.minus(Duration.ofDays(2)), NOW.minus(Duration.ofDays(1)),
                 BanType.TEMPORARY
         );
 
@@ -187,7 +179,7 @@ class LoginListenerTest {
         clock.advance(Duration.ofMinutes(10));
         listener.handle(this.event).join();
 
-        verify(this.event, org.mockito.Mockito.times(2)).setResult(any(ComponentResult.class));
+        verify(this.event, times(2)).setResult(any(ComponentResult.class));
     }
 
     private LoginListener listener(Clock clock) {
@@ -196,14 +188,9 @@ class LoginListenerTest {
 
     private ActiveBanView permanentBan() {
         return new ActiveBanView(
-                1L,
-                PLAYER_UUID,
-                "Steve",
-                UUID.randomUUID(),
-                "Admin",
-                "griefing",
-                NOW.minus(Duration.ofDays(1)),
-                null,
+                1L, PLAYER_UUID, "Steve",
+                UUID.randomUUID(), "Admin",
+                "griefing", NOW.minus(Duration.ofDays(1)), null,
                 BanType.PERMANENT
         );
     }
@@ -221,12 +208,12 @@ class LoginListenerTest {
         }
 
         @Override
-        public java.time.ZoneId getZone() {
+        public ZoneId getZone() {
             return ZoneOffset.UTC;
         }
 
         @Override
-        public Clock withZone(java.time.ZoneId zone) {
+        public Clock withZone(ZoneId zone) {
             return this;
         }
 

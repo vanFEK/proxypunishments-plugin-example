@@ -23,11 +23,6 @@ import java.util.concurrent.ExecutionException;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-/**
- * Exercises the client against a real socket rather than a mock, because the things that broke here
- * before — unescaped query strings, non-JSON error pages, synchronous throws that escaped the future
- * — all live below the level a mocked HTTP client would reach.
- */
 class BansHttpClientTest {
 
     private static final UUID PLAYER = UUID.fromString("11111111-2222-3333-4444-555555555555");

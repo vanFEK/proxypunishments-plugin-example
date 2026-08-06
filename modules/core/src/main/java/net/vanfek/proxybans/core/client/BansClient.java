@@ -11,29 +11,19 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
-/**
- * Transport abstraction over the bans service.
- *
- * <p>Everything above this interface — caching, the login decision, the commands — is pure logic and
- * can be exercised without a socket. {@link BansHttpClient} is the only implementation that speaks
- * HTTP.
- */
 public interface BansClient extends AutoCloseable {
 
     @NotNull CompletableFuture<Optional<ActiveBanView>> findActiveBan(@NotNull UUID uuid);
 
     @NotNull CompletableFuture<ActiveBanView> issueBan(
             @NotNull UUID playerUuid,
-            @NotNull UUID issuedByUuid,
-            @NotNull String issuedByName,
-            @NotNull String reason,
-            @Nullable Duration duration
+            @NotNull UUID issuedByUuid, @NotNull String issuedByName,
+            @NotNull String reason, @Nullable Duration duration
     );
 
     @NotNull CompletableFuture<Void> liftBan(
             @NotNull UUID playerUuid,
-            @NotNull UUID liftedByUuid,
-            @NotNull String liftedByName,
+            @NotNull UUID liftedByUuid, @NotNull String liftedByName,
             @NotNull String reason
     );
 

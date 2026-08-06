@@ -1,4 +1,4 @@
-package net.vanfek.proxybans.velocity.command;
+package net.vanfek.proxybans.velocity.command.punish;
 
 import com.mojang.brigadier.Command;
 import com.mojang.brigadier.arguments.StringArgumentType;
@@ -12,15 +12,15 @@ import net.vanfek.proxybans.core.duration.DurationParser;
 import net.vanfek.proxybans.core.duration.ParsedDuration;
 import net.vanfek.proxybans.core.i18n.Placeholders;
 import net.vanfek.proxybans.core.permission.PermissionNodes;
+import net.vanfek.proxybans.velocity.command.support.CommandContext;
+import net.vanfek.proxybans.velocity.command.support.Feedback;
+import net.vanfek.proxybans.velocity.command.support.Issuer;
+import net.vanfek.proxybans.velocity.command.support.PlayerSuggestions;
 
 import java.time.Duration;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
-/**
- * {@code /tempban <player> <duration> <reason...>} — refuses permanent durations, so that a slip of
- * the finger on the duration argument cannot silently turn into a permanent ban.
- */
 public final class TempBanCommand {
 
     private TempBanCommand() {
@@ -30,12 +30,11 @@ public final class TempBanCommand {
         LiteralArgumentBuilder<CommandSource> node = LiteralArgumentBuilder.<CommandSource>literal(literal)
                 .requires(source -> ctx.permissions().allows(source, PermissionNodes.TEMPBAN))
                 .then(RequiredArgumentBuilder.<CommandSource, String>argument("player", StringArgumentType.word())
-                        .suggests((context, builder) -> CommandUtils.suggestPlayers(proxy, builder))
+                        .suggests((context, builder) -> PlayerSuggestions.matching(proxy, builder))
                         .then(RequiredArgumentBuilder.<CommandSource, String>argument("duration", StringArgumentType.word())
                                 .then(RequiredArgumentBuilder.<CommandSource, String>argument("reason", StringArgumentType.greedyString())
                                         .executes(context -> execute(
-                                                ctx,
-                                                context.getSource(),
+                                                ctx, context.getSource(),
                                                 StringArgumentType.getString(context, "player"),
                                                 StringArgumentType.getString(context, "duration"),
                                                 StringArgumentType.getString(context, "reason")
@@ -50,19 +49,19 @@ public final class TempBanCommand {
         try {
             parsed = DurationParser.parse(durationToken);
         } catch (IllegalArgumentException ex) {
-            CommandUtils.tell(ctx, source, "errors.bad-duration", Placeholders.of("value", durationToken));
+            Feedback.tell(ctx, source, "errors.bad-duration", Placeholders.of("value", durationToken));
 
             return Command.SINGLE_SUCCESS;
         }
 
         if (parsed.isPermanent()) {
-            CommandUtils.tell(ctx, source, "errors.tempban-requires-duration");
+            Feedback.tell(ctx, source, "errors.tempban-requires-duration");
 
             return Command.SINGLE_SUCCESS;
         }
 
         if (reason.isBlank()) {
-            CommandUtils.tell(ctx, source, "errors.reason-required");
+            Feedback.tell(ctx, source, "errors.reason-required");
 
             return Command.SINGLE_SUCCESS;
         }
@@ -74,12 +73,12 @@ public final class TempBanCommand {
                 .thenCompose(resolved -> resolved
                         .map(uuid -> issue(ctx, source, playerName, uuid, reason, duration, issuer))
                         .orElseGet(() -> {
-                            CommandUtils.tell(ctx, source, "errors.unknown-player", Placeholders.of("player", playerName));
+                            Feedback.tell(ctx, source, "errors.unknown-player", Placeholders.of("player", playerName));
 
                             return CompletableFuture.completedFuture(null);
                         }))
                 .exceptionally(throwable -> {
-                    CommandUtils.reportFailure(ctx, source, throwable);
+                    Feedback.reportFailure(ctx, source, throwable);
 
                     return null;
                 });
@@ -88,21 +87,14 @@ public final class TempBanCommand {
     }
 
     private static CompletableFuture<Void> issue(
-            CommandContext ctx,
-            CommandSource source,
-            String playerName,
-            UUID uuid,
-            String reason,
-            Duration duration,
-            Issuer issuer
+            CommandContext ctx, CommandSource source,
+            String playerName, UUID uuid,
+            String reason, Duration duration, Issuer issuer
     ) {
         return ctx.bans().issueBan(uuid, issuer.uuid(), issuer.name(), reason, duration)
-                .thenAccept(ban -> CommandUtils.tell(
-                        ctx,
-                        source,
-                        "ban.success-temporary",
-                        Placeholders.of("player", playerName),
-                        Placeholders.of("reason", reason),
+                .thenAccept(ban -> Feedback.tell(
+                        ctx, source, "ban.success-temporary",
+                        Placeholders.of("player", playerName), Placeholders.of("reason", reason),
                         Placeholders.of("duration", DurationFormatter.human(duration))
                 ));
     }

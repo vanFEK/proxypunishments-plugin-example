@@ -7,17 +7,11 @@ import java.time.Instant;
 import java.util.Optional;
 import java.util.UUID;
 
-/**
- * One immutable line of a player's punishment log.
- */
 public record PunishmentHistoryEntry(
         @NotNull UUID playerUuid,
-        @NotNull UUID issuedByUuid,
-        @NotNull String issuedByName,
-        @NotNull Action action,
-        @NotNull String reason,
-        @NotNull Instant happenedAt,
-        @Nullable Instant expiresAt
+        @NotNull UUID issuedByUuid, @NotNull String issuedByName,
+        @NotNull Action action, @NotNull String reason,
+        @NotNull Instant happenedAt, @Nullable Instant expiresAt
 ) {
 
     public @NotNull Optional<Instant> expiry() {

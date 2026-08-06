@@ -1,4 +1,4 @@
-package net.vanfek.proxybans.velocity.command;
+package net.vanfek.proxybans.velocity.command.punish;
 
 import com.mojang.brigadier.Command;
 import com.mojang.brigadier.arguments.StringArgumentType;
@@ -10,17 +10,12 @@ import com.velocitypowered.api.proxy.Player;
 import com.velocitypowered.api.proxy.ProxyServer;
 import net.vanfek.proxybans.core.i18n.Placeholders;
 import net.vanfek.proxybans.core.permission.PermissionNodes;
+import net.vanfek.proxybans.velocity.command.support.CommandContext;
+import net.vanfek.proxybans.velocity.command.support.Feedback;
 
 import java.util.Optional;
 import java.util.UUID;
 
-/**
- * {@code /pb kick <uuid|name> <reason...>}.
- *
- * <p>Exists mainly for the website to call over RCON right after it writes a ban of its own: the ban
- * itself already lives in the store, this only drops the player who is online at that moment and
- * clears the cached "not banned" answer so the next login is re-checked.
- */
 public final class KickCommand {
 
     private KickCommand() {
@@ -32,9 +27,7 @@ public final class KickCommand {
                 .then(RequiredArgumentBuilder.<CommandSource, String>argument("target", StringArgumentType.word())
                         .then(RequiredArgumentBuilder.<CommandSource, String>argument("reason", StringArgumentType.greedyString())
                                 .executes(context -> execute(
-                                        ctx,
-                                        proxy,
-                                        context.getSource(),
+                                        ctx, proxy, context.getSource(),
                                         StringArgumentType.getString(context, "target"),
                                         StringArgumentType.getString(context, "reason")
                                 ))));
@@ -46,7 +39,7 @@ public final class KickCommand {
         Optional<Player> resolved = byUuid(proxy, target).or(() -> proxy.getPlayer(target));
 
         if (resolved.isEmpty()) {
-            CommandUtils.tell(ctx, source, "kick.not-online", Placeholders.of("target", target));
+            Feedback.tell(ctx, source, "kick.not-online", Placeholders.of("target", target));
 
             return Command.SINGLE_SUCCESS;
         }
@@ -56,12 +49,9 @@ public final class KickCommand {
         ctx.bans().invalidate(player.getUniqueId());
         player.disconnect(ctx.messages().render("kick.player-reason", Placeholders.of("reason", reason)));
 
-        CommandUtils.tell(
-                ctx,
-                source,
-                "kick.done",
-                Placeholders.of("target", player.getUsername()),
-                Placeholders.of("reason", reason)
+        Feedback.tell(
+                ctx, source, "kick.done",
+                Placeholders.of("target", player.getUsername()), Placeholders.of("reason", reason)
         );
 
         return Command.SINGLE_SUCCESS;
