@@ -2,7 +2,6 @@
 
 [![CI](https://github.com/vanfek/proxybans-plugin/actions/workflows/ci.yml/badge.svg)](https://github.com/vanfek/proxybans-plugin/actions/workflows/ci.yml)
 [![Java](https://img.shields.io/badge/Java-25-orange)](https://openjdk.org/projects/jdk/25/)
-[![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
 *[Русская версия](README.ru.md)*
 
@@ -10,9 +9,12 @@ Proxy-side ban system for [Velocity](https://papermc.io/software/velocity). Ban 
 separate service ([proxybans-service](https://github.com/vanfek/proxybans-service)), so the same
 plugin works whether punishments are stored in its own database or already owned by a website.
 
-The interesting part is not the commands — it is what happens when the network misbehaves. A login
-check sits on the critical path of every player connection, so the plugin is built around the
-question *"what do we do when the answer is not available in time?"*
+The interesting part is not the commands — it is what happens when the network misbehaves. A ban
+check sits on the critical path of every player connection, so the plugin answers from a cache when
+it can, falls back to a recent stale answer while the service is unreachable, and, when nothing
+usable is cached, applies a configurable fail-open policy: the player is let in and the incident is
+logged. Locking an entire network out because one internal service restarted is usually the worse
+failure; `login.fail-open: false` inverts that trade-off.
 
 ---
 
@@ -31,55 +33,14 @@ flowchart LR
 
 Three Gradle modules, dependencies pointing one way only:
 
-| Module            | Contents                                                            |
-|-------------------|---------------------------------------------------------------------|
-| `modules/api`     | public SPI — `BanService`, `ActiveBanView`, `PunishmentHistoryEntry` |
-| `modules/core`    | HTTP client, cache, config, permissions, MiniMessage rendering       |
-| `modules/velocity`| Velocity entry point, commands, login listener                       |
+| Module             | Contents                                                            |
+|--------------------|---------------------------------------------------------------------|
+| `modules/api`      | public SPI — `BanService`, `ActiveBanView`, `PunishmentHistoryEntry` |
+| `modules/core`     | HTTP client, cache, config, permissions, MiniMessage rendering       |
+| `modules/velocity` | Velocity entry point, commands, login listener                       |
 
 `core` talks to the service through the `BansClient` interface, so everything above the socket —
 caching, the login decision, command handling — is tested without one.
-
-## The login path
-
-```mermaid
-sequenceDiagram
-    participant P as Player
-    participant L as LoginListener
-    participant C as BanCache
-    participant S as bans-service
-
-    P->>L: LoginEvent
-    L->>C: peek(uuid)
-    alt fresh entry (< active-ttl)
-        C-->>L: cached decision
-    else stale or missing
-        L->>S: GET /api/v1/bans/{uuid}/active
-        alt service answers
-            S-->>L: ban / 404
-            L->>C: store
-        else service unreachable
-            alt stale entry within stale-ttl
-                C-->>L: stale decision
-            else nothing usable
-                Note over L: fail-open → allow + log<br/>fail-closed → deny
-            end
-        end
-    end
-    L-->>P: allow / deny
-```
-
-Two policies, both deliberate:
-
-- **Stale cache.** If the service is down but a recent answer exists, that answer is used. A stale
-  "banned" is far better than letting a banned player in because a backend restarted.
-- **Fail-open** (default, configurable). If nothing usable is cached either, the player is let in and
-  the incident is logged. Locking an entire network out because one internal service blinked is
-  usually the worse failure. Set `login.fail-open: false` to invert that trade-off.
-
-If the config file cannot be read at all, the plugin falls back to built-in defaults rather than
-starting half-initialised — a plugin that logs an error and then registers no listener looks alive
-while quietly letting every banned player through.
 
 ## Commands
 
@@ -164,7 +125,3 @@ Covered on purpose, because these are the places where a regression is expensive
 - cache behaviour — fresh, stale, expired, negative caching (verified against a controllable clock)
 - the login decision — banned, expired, fail-open, fail-closed, stale-cache enforcement
 - the HTTP client — against a real socket: query escaping, non-JSON error pages, connection failures
-
-## License
-
-MIT — see [LICENSE](LICENSE).
