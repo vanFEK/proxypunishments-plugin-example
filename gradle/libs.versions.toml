@@ -1,6 +1,8 @@
 [versions]
-velocity = "3.5.0-SNAPSHOT"
-paper = "1.21.8-R0.1-SNAPSHOT"
+# Pinned to a specific snapshot build: an unpinned -SNAPSHOT turns any upstream publish into a
+# red CI run on a repository nobody touched.
+velocity = "3.5.0-20260711.003721-41"
+paper = "1.21.8-R0.1-20250906.215025-55"
 luckperms = "5.5"
 gson = "2.11.0"
 annotations = "26.0.2"

@@ -38,7 +38,7 @@ import java.time.Clock;
         name = "ProxyPunishments",
         version = "1.0.0",
         description = "Proxy-side punishment system for Velocity, backed by a standalone punishments service",
-        url = "https://github.com/vanfek/proxypunishments-plugin",
+        url = "https://github.com/vanFEK/proxypunishments-plugin-example",
         authors = {"vanfek"},
         dependencies = {@Dependency(id = "luckperms", optional = true)}
 )
