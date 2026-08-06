@@ -3,7 +3,7 @@ plugins {
 }
 
 allprojects {
-    group = "net.vanfek.proxybans"
+    group = "net.vanfek.proxypunishments"
     version = "1.0.0"
 }
 

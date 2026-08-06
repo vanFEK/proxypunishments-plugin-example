@@ -1,13 +1,13 @@
-# ProxyBans — плагин для Velocity и Paper
+# ProxyPunishments — плагин для Velocity и Paper
 
-[![CI](https://github.com/vanfek/proxybans-plugin/actions/workflows/ci.yml/badge.svg)](https://github.com/vanfek/proxybans-plugin/actions/workflows/ci.yml)
+[![CI](https://github.com/vanfek/proxypunishments-plugin/actions/workflows/ci.yml/badge.svg)](https://github.com/vanfek/proxypunishments-plugin/actions/workflows/ci.yml)
 [![Java](https://img.shields.io/badge/Java-25-orange)](https://openjdk.org/projects/jdk/25/)
 
 *[English version](README.md)*
 
 Система банов для [Velocity](https://papermc.io/software/velocity) и
 [Paper](https://papermc.io/software/paper). Состояние банов хранит отдельный сервис
-([proxybans-service](https://github.com/vanfek/proxybans-service)), поэтому один и тот же плагин
+([proxypunishments-service](https://github.com/vanfek/proxypunishments-service)), поэтому один и тот же плагин
 работает и когда наказания лежат в собственной БД, и когда ими уже владеет сайт.
 
 Интересное здесь не команды, а поведение при сбоях. Проверка бана стоит на критическом пути каждого
@@ -23,12 +23,12 @@
 ```mermaid
 flowchart LR
     P([Игрок]) -->|login| V[Velocity]
-    V --> PL[ProxyBans — модуль Velocity]
+    V --> PL[ProxyPunishments — модуль Velocity]
     V -->|бэкенд-сервер| B[Сервер Paper]
-    B --> PP[ProxyBans — модуль Paper]
+    B --> PP[ProxyPunishments — модуль Paper]
     PL --> C{{Кеш Caffeine}}
     PP --> C2{{Кеш Caffeine}}
-    PL -->|HTTP + X-Service-Token| S[proxybans-service]
+    PL -->|HTTP + X-Service-Token| S[proxypunishments-service]
     PP -->|HTTP + X-Service-Token| S
     S --> DB[(PostgreSQL)]
     S -.->|режим remote| W[API сайта]
@@ -55,7 +55,7 @@ flowchart LR
 
 | | Модуль Velocity | Модуль Paper |
 |---|---|---|
-| Артефакт | `ProxyBans-1.0.0.jar` | `ProxyBans-Paper-1.0.0.jar` |
+| Артефакт | `ProxyPunishments-1.0.0.jar` | `ProxyPunishments-Paper-1.0.0.jar` |
 | Не пускает забаненных | да, на прокси | да, на бэкенд-сервере |
 | Блокирует чат при муте | нет — подписанный чат не перехватить надёжно | **да** |
 | Владеет командами | всегда | только на одиночном сервере |
@@ -78,26 +78,26 @@ BungeeCord или Velocity — там командами владеет прок
 
 ## Команды
 
-Всё доступно как `/pb <подкоманда>` и, если не отключено, как команды верхнего уровня. Имена, уже
+Всё доступно как `/pp <подкоманда>` и, если не отключено, как команды верхнего уровня. Имена, уже
 занятые другим плагином, пропускаются с предупреждением, а не перетираются. Оба модуля регистрируют
 одно и то же дерево с одними и теми же пермишенами; на Paper то, регистрируются ли они вообще,
 решает `commands.mode`.
 
 | Команда       | Алиасы                                                | Пермишен                     |
 |---------------|-------------------------------------------------------|------------------------------|
-| `/ban`        | `permban`, `blacklist`, `banplayer`, `punish`         | `proxybans.command.ban`      |
-| `/tempban`    | `tban`, `timedban`                                    | `proxybans.command.tempban`  |
-| `/unban`      | `pardon`, `unblacklist`                               | `proxybans.command.unban`    |
-| `/mute`       | `permmute`, `silence`, `muteplayer`                   | `proxybans.command.mute`     |
-| `/tempmute`   | `tmute`, `timedmute`                                  | `proxybans.command.tempmute` |
-| `/unmute`     | `unsilence`, `pardonmute`                             | `proxybans.command.unmute`   |
-| `/warn`       | `caution`, `warnplayer`                               | `proxybans.command.warn`     |
-| `/baninfo`    | `checkban`, `isbanned`, `banstatus`, `punishmentinfo` | `proxybans.command.info`     |
-| `/banhistory` | `banlog`, `punishments`                               | `proxybans.command.history`  |
-| `/banlist`    | `bans`, `activebans`, `punishmentlist`                | `proxybans.command.list`     |
-| `/pb kick`    | —                                                     | `proxybans.command.kick`     |
+| `/ban`        | `permban`, `blacklist`, `banplayer`, `punish`         | `proxypunishments.command.ban`      |
+| `/tempban`    | `tban`, `timedban`                                    | `proxypunishments.command.tempban`  |
+| `/unban`      | `pardon`, `unblacklist`                               | `proxypunishments.command.unban`    |
+| `/mute`       | `permmute`, `silence`, `muteplayer`                   | `proxypunishments.command.mute`     |
+| `/tempmute`   | `tmute`, `timedmute`                                  | `proxypunishments.command.tempmute` |
+| `/unmute`     | `unsilence`, `pardonmute`                             | `proxypunishments.command.unmute`   |
+| `/warn`       | `caution`, `warnplayer`                               | `proxypunishments.command.warn`     |
+| `/baninfo`    | `checkban`, `isbanned`, `banstatus`, `punishmentinfo` | `proxypunishments.command.info`     |
+| `/banhistory` | `banlog`, `punishments`                               | `proxypunishments.command.history`  |
+| `/banlist`    | `bans`, `activebans`, `punishmentlist`                | `proxypunishments.command.list`     |
+| `/pp kick`    | —                                                     | `proxypunishments.command.kick`     |
 
-`proxybans.admin` выдаёт все перечисленные.
+`proxypunishments.admin` выдаёт все перечисленные.
 
 **Длительности**: `30s`, `5m`, `2h30m`, `7d`, `1w`, `3M`, `1y`, либо `perm` / `forever` / `0`.
 Регистр буквы значим: `m` — минуты, `M` — месяцы. Переполнение, нулевая и абсурдно большая
@@ -114,12 +114,12 @@ BungeeCord или Velocity — там командами владеет прок
 
 ## Конфигурация
 
-`plugins/proxybans/config.yml`:
+`plugins/proxypunishments/config.yml`:
 
 ```yaml
 service:
-  base-url: "http://proxybans:8080"
-  token: ""              # должен совпадать с PROXYBANS_SERVICE_TOKEN на сервисе
+  base-url: "http://proxypunishments:8080"
+  token: ""              # должен совпадать с PROXYPUNISHMENTS_SERVICE_TOKEN на сервисе
   connect-timeout: PT2S
   request-timeout: PT3S
 
@@ -146,7 +146,7 @@ commands:
 останавливают и на `/msg`, и в чате. Префикс неймспейса вроде `essentials:msg` отбрасывается перед
 сравнением, поэтому обойти мут через алиас не выйдет.
 
-`plugins/proxybans/messages.yml` — все строки как шаблоны
+`plugins/proxypunishments/messages.yml` — все строки как шаблоны
 [MiniMessage](https://docs.advntr.dev/minimessage/format.html). Значения плейсхолдеров
 подставляются буквально и никогда не парсятся как разметка: игрок не сможет протащить форматирование,
 hover или клик в сообщения для персонала через свой ник или причину бана. Ключи, добавленные в новых
@@ -164,8 +164,8 @@ hover или клик в сообщения для персонала через
 ./gradlew build          # компиляция, тесты, shaded-jar
 ```
 
-Артефакты: `modules/velocity/build/libs/ProxyBans-1.0.0.jar` и
-`modules/paper/build/libs/ProxyBans-Paper-1.0.0.jar` → в папку `plugins/`.
+Артефакты: `modules/velocity/build/libs/ProxyPunishments-1.0.0.jar` и
+`modules/paper/build/libs/ProxyPunishments-Paper-1.0.0.jar` → в папку `plugins/`.
 
 Нужен JDK 25. Gradle wrapper закоммичен, ставить больше нечего.
 

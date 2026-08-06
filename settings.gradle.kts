@@ -1,4 +1,4 @@
-rootProject.name = "proxybans-plugin"
+rootProject.name = "proxypunishments-plugin"
 
 include(":api", ":core", ":velocity", ":paper")
 

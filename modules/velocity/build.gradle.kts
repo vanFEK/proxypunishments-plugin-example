@@ -27,7 +27,7 @@ dependencies {
 }
 
 tasks.shadowJar {
-    archiveBaseName.set("ProxyBans")
+    archiveBaseName.set("ProxyPunishments")
     archiveClassifier.set("")
     archiveVersion.set(project.version.toString())
 

@@ -1,10 +1,10 @@
-# ProxyBans — plugin configuration, shared by the Velocity and the Paper module.
+# ProxyPunishments — plugin configuration, shared by the Velocity and the Paper module.
 # Durations use ISO-8601 notation: PT2S = 2 seconds, PT30M = 30 minutes.
 
 service:
-  # Where proxybans-service listens. Inside Docker this is the service name, not localhost.
-  base-url: "http://proxybans:8080"
-  # Must match PROXYBANS_SERVICE_TOKEN on the service. An empty token is rejected on both sides.
+  # Where proxypunishments-service listens. Inside Docker this is the service name, not localhost.
+  base-url: "http://proxypunishments:8080"
+  # Must match PROXYPUNISHMENTS_SERVICE_TOKEN on the service. An empty token is rejected on both sides.
   token: ""
   connect-timeout: PT2S
   request-timeout: PT3S
@@ -32,7 +32,7 @@ chat:
   blocked-commands: ["msg", "tell", "w", "whisper", "r", "reply", "me", "say", "pm"]
 
 commands:
-  # Register /ban, /tempban, /unban... as top-level commands in addition to /pb <subcommand>.
+  # Register /ban, /tempban, /unban... as top-level commands in addition to /pp <subcommand>.
   register-top-level-aliases: true
   # Paper module only. auto: register nothing when the server sits behind a BungeeCord or Velocity
   # proxy, because the proxy owns the commands, and everything on a standalone server.

@@ -41,8 +41,8 @@ jobs:
       - name: Upload plugin jars
         uses: actions/upload-artifact@v4
         with:
-          name: ProxyBans
+          name: ProxyPunishments
           path: |
-            modules/velocity/build/libs/ProxyBans-*.jar
-            modules/paper/build/libs/ProxyBans-Paper-*.jar
+            modules/velocity/build/libs/ProxyPunishments-*.jar
+            modules/paper/build/libs/ProxyPunishments-Paper-*.jar
           retention-days: 7

@@ -1,13 +1,13 @@
-# ProxyBans — Velocity and Paper plugin
+# ProxyPunishments — Velocity and Paper plugin
 
-[![CI](https://github.com/vanfek/proxybans-plugin/actions/workflows/ci.yml/badge.svg)](https://github.com/vanfek/proxybans-plugin/actions/workflows/ci.yml)
+[![CI](https://github.com/vanfek/proxypunishments-plugin/actions/workflows/ci.yml/badge.svg)](https://github.com/vanfek/proxypunishments-plugin/actions/workflows/ci.yml)
 [![Java](https://img.shields.io/badge/Java-25-orange)](https://openjdk.org/projects/jdk/25/)
 
 *[Русская версия](README.ru.md)*
 
 Ban system for [Velocity](https://papermc.io/software/velocity) and
 [Paper](https://papermc.io/software/paper). Ban state lives in a separate service
-([proxybans-service](https://github.com/vanfek/proxybans-service)), so the same plugin works whether
+([proxypunishments-service](https://github.com/vanfek/proxypunishments-service)), so the same plugin works whether
 punishments are stored in its own database or already owned by a website.
 
 The interesting part is not the commands — it is what happens when the network misbehaves. A ban
@@ -24,12 +24,12 @@ failure; `login.fail-open: false` inverts that trade-off.
 ```mermaid
 flowchart LR
     P([Player]) -->|login| V[Velocity proxy]
-    V --> PL[ProxyBans — Velocity module]
+    V --> PL[ProxyPunishments — Velocity module]
     V -->|backend server| B[Paper server]
-    B --> PP[ProxyBans — Paper module]
+    B --> PP[ProxyPunishments — Paper module]
     PL --> C{{Caffeine cache}}
     PP --> C2{{Caffeine cache}}
-    PL -->|HTTP + X-Service-Token| S[proxybans-service]
+    PL -->|HTTP + X-Service-Token| S[proxypunishments-service]
     PP -->|HTTP + X-Service-Token| S
     S --> DB[(PostgreSQL)]
     S -.->|remote mode| W[Website API]
@@ -56,7 +56,7 @@ caching, the login decision, command handling — is tested without one.
 
 | | Velocity module | Paper module |
 |---|---|---|
-| Artifact | `ProxyBans-1.0.0.jar` | `ProxyBans-Paper-1.0.0.jar` |
+| Artifact | `ProxyPunishments-1.0.0.jar` | `ProxyPunishments-Paper-1.0.0.jar` |
 | Blocks banned logins | yes, at the proxy | yes, on the backend server |
 | Blocks muted chat | no — signed chat cannot be intercepted reliably | **yes** |
 | Owns the commands | always | only on a standalone server |
@@ -79,26 +79,26 @@ mute issued on the proxy is enforced by the Paper module without any further wir
 
 ## Commands
 
-Every command is available as `/pb <subcommand>` and, unless disabled, as a top-level alias. Names
+Every command is available as `/pp <subcommand>` and, unless disabled, as a top-level alias. Names
 already claimed by another plugin are skipped with a warning instead of being overwritten. Both
 modules register the same tree with the same permission nodes; on Paper, whether they are registered
 at all is decided by `commands.mode`.
 
 | Command       | Aliases                                               | Permission                   |
 |---------------|-------------------------------------------------------|------------------------------|
-| `/ban`        | `permban`, `blacklist`, `banplayer`, `punish`         | `proxybans.command.ban`      |
-| `/tempban`    | `tban`, `timedban`                                    | `proxybans.command.tempban`  |
-| `/unban`      | `pardon`, `unblacklist`                               | `proxybans.command.unban`    |
-| `/mute`       | `permmute`, `silence`, `muteplayer`                   | `proxybans.command.mute`     |
-| `/tempmute`   | `tmute`, `timedmute`                                  | `proxybans.command.tempmute` |
-| `/unmute`     | `unsilence`, `pardonmute`                             | `proxybans.command.unmute`   |
-| `/warn`       | `caution`, `warnplayer`                               | `proxybans.command.warn`     |
-| `/baninfo`    | `checkban`, `isbanned`, `banstatus`, `punishmentinfo` | `proxybans.command.info`     |
-| `/banhistory` | `banlog`, `punishments`                               | `proxybans.command.history`  |
-| `/banlist`    | `bans`, `activebans`, `punishmentlist`                | `proxybans.command.list`     |
-| `/pb kick`    | —                                                     | `proxybans.command.kick`     |
+| `/ban`        | `permban`, `blacklist`, `banplayer`, `punish`         | `proxypunishments.command.ban`      |
+| `/tempban`    | `tban`, `timedban`                                    | `proxypunishments.command.tempban`  |
+| `/unban`      | `pardon`, `unblacklist`                               | `proxypunishments.command.unban`    |
+| `/mute`       | `permmute`, `silence`, `muteplayer`                   | `proxypunishments.command.mute`     |
+| `/tempmute`   | `tmute`, `timedmute`                                  | `proxypunishments.command.tempmute` |
+| `/unmute`     | `unsilence`, `pardonmute`                             | `proxypunishments.command.unmute`   |
+| `/warn`       | `caution`, `warnplayer`                               | `proxypunishments.command.warn`     |
+| `/baninfo`    | `checkban`, `isbanned`, `banstatus`, `punishmentinfo` | `proxypunishments.command.info`     |
+| `/banhistory` | `banlog`, `punishments`                               | `proxypunishments.command.history`  |
+| `/banlist`    | `bans`, `activebans`, `punishmentlist`                | `proxypunishments.command.list`     |
+| `/pp kick`    | —                                                     | `proxypunishments.command.kick`     |
 
-`proxybans.admin` grants all of the above.
+`proxypunishments.admin` grants all of the above.
 
 **Durations**: `30s`, `5m`, `2h30m`, `7d`, `1w`, `3M`, `1y`, or `perm` / `forever` / `0`.
 Unit letters are case sensitive — `m` is minutes, `M` is months. Overflow, zero-length and
@@ -115,12 +115,12 @@ mute; `/baninfo <player> mute` and `/banlist [ban|mute] [page]` narrow either to
 
 ## Configuration
 
-`plugins/proxybans/config.yml`:
+`plugins/proxypunishments/config.yml`:
 
 ```yaml
 service:
-  base-url: "http://proxybans:8080"
-  token: ""              # must match PROXYBANS_SERVICE_TOKEN on the service
+  base-url: "http://proxypunishments:8080"
+  token: ""              # must match PROXYPUNISHMENTS_SERVICE_TOKEN on the service
   connect-timeout: PT2S
   request-timeout: PT3S
 
@@ -147,7 +147,7 @@ commands:
 on `/msg` as well as in chat. A namespace prefix such as `essentials:msg` is stripped before
 matching, so aliasing does not get around the mute.
 
-`plugins/proxybans/messages.yml` holds every string as a
+`plugins/proxypunishments/messages.yml` holds every string as a
 [MiniMessage](https://docs.advntr.dev/minimessage/format.html) template. Placeholder values are
 inserted verbatim and never parsed as markup, so a player cannot smuggle formatting, hover text or
 click actions into staff messages through their name or a ban reason. Keys added in later versions
@@ -165,8 +165,8 @@ staff out rather than handing `/ban` to everyone.
 ./gradlew build          # compiles, runs tests, produces the shaded jar
 ```
 
-Artifacts: `modules/velocity/build/libs/ProxyBans-1.0.0.jar` and
-`modules/paper/build/libs/ProxyBans-Paper-1.0.0.jar` → drop into `plugins/`.
+Artifacts: `modules/velocity/build/libs/ProxyPunishments-1.0.0.jar` and
+`modules/paper/build/libs/ProxyPunishments-Paper-1.0.0.jar` → drop into `plugins/`.
 
 Requires JDK 25. The Gradle wrapper is committed; nothing else needs installing.
 

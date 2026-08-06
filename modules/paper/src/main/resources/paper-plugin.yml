@@ -1,9 +1,9 @@
-name: ProxyBans
+name: ProxyPunishments
 version: "1.0.0"
-main: net.vanfek.proxybans.paper.ProxyBansPlugin
+main: net.vanfek.proxypunishments.paper.ProxyPunishmentsPlugin
 api-version: "1.21"
 description: "Backend-side punishment enforcement for Paper, backed by a standalone punishments service"
-website: "https://github.com/vanfek/proxybans-plugin"
+website: "https://github.com/vanfek/proxypunishments-plugin"
 authors:
   - vanfek
 dependencies:
