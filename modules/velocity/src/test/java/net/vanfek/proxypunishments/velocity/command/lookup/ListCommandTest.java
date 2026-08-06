@@ -8,9 +8,11 @@ import net.vanfek.proxypunishments.core.PunishmentServiceImpl;
 import net.vanfek.proxypunishments.core.cache.PunishmentCache;
 import net.vanfek.proxypunishments.core.client.PunishmentsClient;
 import net.vanfek.proxypunishments.core.config.PluginConfig;
+import net.vanfek.proxypunishments.core.config.RuntimeConfiguration;
 import net.vanfek.proxypunishments.core.metrics.PluginMetrics;
 import net.vanfek.proxypunishments.core.i18n.MessageBundle;
 import net.vanfek.proxypunishments.core.permission.NativePermissionChecker;
+import net.vanfek.proxypunishments.core.reload.ConfigurationReloader;
 import net.vanfek.proxypunishments.velocity.command.support.CommandContext;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -53,7 +55,14 @@ class ListCommandTest {
         PunishmentServiceImpl punishments = new PunishmentServiceImpl(this.client, cache, new PluginMetrics());
         MessageBundle messages = MessageBundle.load(directory);
 
-        CommandContext ctx = new CommandContext(punishments, messages, new NativePermissionChecker(), clock, LOGGER);
+        RuntimeConfiguration runtime = new RuntimeConfiguration(new PluginConfig(), messages);
+        ConfigurationReloader reloader = new ConfigurationReloader(directory, runtime, LOGGER);
+
+        CommandContext ctx = new CommandContext(
+                punishments, runtime,
+                reloader, new NativePermissionChecker(),
+                clock, LOGGER
+        );
 
         this.source = mock(CommandSource.class);
         when(this.source.hasPermission(anyString())).thenReturn(true);

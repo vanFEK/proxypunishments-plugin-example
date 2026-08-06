@@ -10,6 +10,7 @@ import net.vanfek.proxypunishments.core.cache.PunishmentCache;
 import net.vanfek.proxypunishments.core.client.PunishmentsClient;
 import net.vanfek.proxypunishments.core.client.PunishmentsHttpException;
 import net.vanfek.proxypunishments.core.config.PluginConfig;
+import net.vanfek.proxypunishments.core.config.RuntimeConfiguration;
 import net.vanfek.proxypunishments.core.metrics.PluginMetrics;
 import net.vanfek.proxypunishments.core.i18n.MessageBundle;
 import org.bukkit.entity.Player;
@@ -27,6 +28,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -47,7 +49,8 @@ class ChatListenerTest {
     private PunishmentsClient client;
     private PunishmentServiceImpl punishments;
     private MessageBundle messages;
-    private PluginConfig.Chat config;
+    private PluginConfig config;
+    private RuntimeConfiguration runtime;
     private Player player;
 
     @BeforeEach
@@ -61,7 +64,8 @@ class ChatListenerTest {
                 new PluginMetrics()
         );
         this.messages = MessageBundle.load(directory);
-        this.config = new PluginConfig.Chat();
+        this.config = new PluginConfig();
+        this.runtime = new RuntimeConfiguration(this.config, this.messages);
 
         this.player = mock(Player.class);
         when(this.player.getUniqueId()).thenReturn(PLAYER_UUID);
@@ -117,9 +121,35 @@ class ChatListenerTest {
     }
 
     @Test
+    @DisplayName("enforce-mute turned off after the listener was built stops it blocking anything")
+    void stopsEnforcingWhenTheReloadedConfigSaysSo() {
+        ChatListener listener = listener();
+
+        this.config.chat.enforceMute = false;
+
+        AsyncChatEvent event = chatEvent();
+
+        listener.onChat(event);
+
+        assertThat(event.isCancelled()).isFalse();
+        verify(this.client, never()).findActive(any(), any());
+    }
+
+    @Test
+    @DisplayName("a command list changed after the listener was built is matched against the new one")
+    void picksUpTheReloadedCommandList() {
+        ChatListener listener = listener();
+
+        this.config.chat.blockedCommands = List.of("shout");
+
+        assertThat(listener.isBlockedCommand("/shout hello")).isTrue();
+        assertThat(listener.isBlockedCommand("/msg Steve hello")).isFalse();
+    }
+
+    @Test
     @DisplayName("fail-open: the service is down and the message goes through")
     void allowsChatWhenServiceIsDownAndFailOpenIsOn() {
-        this.config.failOpen = true;
+        this.config.chat.failOpen = true;
 
         when(this.client.findActive(PLAYER_UUID, PunishmentKind.MUTE))
                 .thenReturn(CompletableFuture.failedFuture(new PunishmentsHttpException("connection refused", null)));
@@ -134,7 +164,7 @@ class ChatListenerTest {
     @Test
     @DisplayName("fail-closed: the service is down and the message is held back with an explanation")
     void cancelsChatWhenServiceIsDownAndFailOpenIsOff() {
-        this.config.failOpen = false;
+        this.config.chat.failOpen = false;
 
         when(this.client.findActive(PLAYER_UUID, PunishmentKind.MUTE))
                 .thenReturn(CompletableFuture.failedFuture(new PunishmentsHttpException("connection refused", null)));
@@ -170,7 +200,7 @@ class ChatListenerTest {
     }
 
     private ChatListener listener() {
-        return new ChatListener(this.punishments, this.messages, this.config, Clock.fixed(NOW, ZoneOffset.UTC), LOGGER);
+        return new ChatListener(this.punishments, this.runtime, Clock.fixed(NOW, ZoneOffset.UTC), LOGGER);
     }
 
     private AsyncChatEvent chatEvent() {

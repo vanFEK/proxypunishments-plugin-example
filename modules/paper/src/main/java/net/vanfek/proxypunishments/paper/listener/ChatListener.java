@@ -5,9 +5,8 @@ import net.kyori.adventure.text.Component;
 import net.vanfek.proxypunishments.api.ActivePunishmentView;
 import net.vanfek.proxypunishments.api.PunishmentKind;
 import net.vanfek.proxypunishments.core.PunishmentServiceImpl;
-import net.vanfek.proxypunishments.core.config.PluginConfig;
+import net.vanfek.proxypunishments.core.config.RuntimeConfiguration;
 import net.vanfek.proxypunishments.core.duration.DurationFormatter;
-import net.vanfek.proxypunishments.core.i18n.MessageBundle;
 import net.vanfek.proxypunishments.core.i18n.Placeholders;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -30,28 +29,29 @@ import java.util.concurrent.CompletionException;
 public final class ChatListener implements Listener {
 
     private final PunishmentServiceImpl punishments;
-    private final MessageBundle messages;
-    private final PluginConfig.Chat config;
+    private final RuntimeConfiguration runtime;
     private final Clock clock;
     private final Logger logger;
 
-    private final Set<String> blockedCommands;
+    private volatile BlockedCommands blocked;
 
     public ChatListener(
-            @NotNull PunishmentServiceImpl punishments, @NotNull MessageBundle messages,
-            @NotNull PluginConfig.Chat config, @NotNull Clock clock,
-            @NotNull Logger logger
+            @NotNull PunishmentServiceImpl punishments, @NotNull RuntimeConfiguration runtime,
+            @NotNull Clock clock, @NotNull Logger logger
     ) {
         this.punishments = punishments;
-        this.messages = messages;
-        this.config = config;
+        this.runtime = runtime;
         this.clock = clock;
         this.logger = logger;
-        this.blockedCommands = normalise(config.blockedCommands);
+        this.blocked = normalise(runtime.config().chat.blockedCommands);
     }
 
     @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
     public void onChat(@NotNull AsyncChatEvent event) {
+        if (!enforcesMute()) {
+            return;
+        }
+
         if (isMuted(event.getPlayer())) {
             event.setCancelled(true);
         }
@@ -60,13 +60,17 @@ public final class ChatListener implements Listener {
     // Unlike chat, this one runs on the main thread; the lookup is bounded by service.request-timeout and usually a cache hit.
     @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
     public void onCommand(@NotNull PlayerCommandPreprocessEvent event) {
-        if (!isBlockedCommand(event.getMessage())) {
+        if (!enforcesMute() || !isBlockedCommand(event.getMessage())) {
             return;
         }
 
         if (isMuted(event.getPlayer())) {
             event.setCancelled(true);
         }
+    }
+
+    public boolean enforcesMute() {
+        return this.runtime.config().chat.enforceMute;
     }
 
     public boolean isMuted(@NotNull Player player) {
@@ -90,21 +94,35 @@ public final class ChatListener implements Listener {
     }
 
     public boolean isBlockedCommand(@NotNull String message) {
-        return this.blockedCommands.contains(label(message));
+        return blockedCommands().contains(label(message));
+    }
+
+    private Set<String> blockedCommands() {
+        List<String> configured = this.runtime.config().chat.blockedCommands;
+        BlockedCommands current = this.blocked;
+
+        if (current.configured().equals(configured)) {
+            return current.labels();
+        }
+
+        BlockedCommands refreshed = normalise(configured);
+        this.blocked = refreshed;
+
+        return refreshed.labels();
     }
 
     private boolean onLookupFailure(Player player, Throwable throwable) {
         Throwable cause = unwrap(throwable);
         String username = player.getName();
 
-        if (this.config.failOpen) {
+        if (this.runtime.config().chat.failOpen) {
             this.logger.warn("Mute lookup failed for {}, allowing the message (fail-open): {}", username, cause.getMessage());
 
             return false;
         }
 
         this.logger.error("Mute lookup failed for {} and fail-open is disabled, blocking the message: {}", username, cause.getMessage());
-        player.sendMessage(this.messages.render("chat.service-unavailable"));
+        player.sendMessage(this.runtime.messages().render("chat.service-unavailable"));
 
         return true;
     }
@@ -121,21 +139,21 @@ public final class ChatListener implements Listener {
                 .map(expiry -> Duration.between(now, expiry))
                 .orElse(Duration.ZERO);
 
-        return this.messages.render(
+        return this.runtime.messages().render(
                 key, Placeholders.of("reason", mute.reason()), Placeholders.of("admin", mute.issuedByName()),
                 Placeholders.of("remaining", mute.isPermanent() ? "—" : DurationFormatter.human(remaining)),
                 Placeholders.of("expires_at", mute.expiry().map(Instant::toString).orElse("—"))
         );
     }
 
-    private static Set<String> normalise(List<String> configured) {
+    private static BlockedCommands normalise(List<String> configured) {
         Set<String> labels = new HashSet<>();
 
         for (String command : configured) {
             labels.add(label(command));
         }
 
-        return Set.copyOf(labels);
+        return new BlockedCommands(List.copyOf(configured), Set.copyOf(labels));
     }
 
     private static String label(String message) {
@@ -152,6 +170,9 @@ public final class ChatListener implements Listener {
         return throwable instanceof CompletionException completion && completion.getCause() != null
                 ? completion.getCause()
                 : throwable;
+    }
+
+    private record BlockedCommands(List<String> configured, Set<String> labels) {
     }
 
 }

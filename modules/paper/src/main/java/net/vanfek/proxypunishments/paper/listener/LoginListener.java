@@ -5,9 +5,8 @@ import net.vanfek.proxypunishments.api.ActivePunishmentView;
 import net.vanfek.proxypunishments.api.PunishmentKind;
 import net.vanfek.proxypunishments.core.PunishmentServiceImpl;
 import net.vanfek.proxypunishments.core.address.IpAddresses;
-import net.vanfek.proxypunishments.core.config.PluginConfig;
+import net.vanfek.proxypunishments.core.config.RuntimeConfiguration;
 import net.vanfek.proxypunishments.core.duration.DurationFormatter;
-import net.vanfek.proxypunishments.core.i18n.MessageBundle;
 import net.vanfek.proxypunishments.core.i18n.Placeholders;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -30,19 +29,16 @@ import java.util.concurrent.CompletionException;
 public final class LoginListener implements Listener {
 
     private final PunishmentServiceImpl punishments;
-    private final MessageBundle messages;
-    private final PluginConfig.Login config;
+    private final RuntimeConfiguration runtime;
     private final Clock clock;
     private final Logger logger;
 
     public LoginListener(
-            @NotNull PunishmentServiceImpl punishments, @NotNull MessageBundle messages,
-            @NotNull PluginConfig.Login config, @NotNull Clock clock,
-            @NotNull Logger logger
+            @NotNull PunishmentServiceImpl punishments, @NotNull RuntimeConfiguration runtime,
+            @NotNull Clock clock, @NotNull Logger logger
     ) {
         this.punishments = punishments;
-        this.messages = messages;
-        this.config = config;
+        this.runtime = runtime;
         this.clock = clock;
         this.logger = logger;
     }
@@ -100,7 +96,7 @@ public final class LoginListener implements Listener {
     }
 
     private CompletableFuture<Void> rememberIfNeeded(AsyncPlayerPreLoginEvent event, Optional<String> address) {
-        if (!this.config.rememberPlayer) {
+        if (!this.runtime.config().login.rememberPlayer) {
             return CompletableFuture.completedFuture(null);
         }
 
@@ -118,7 +114,7 @@ public final class LoginListener implements Listener {
         Throwable cause = unwrap(throwable);
         String username = event.getName();
 
-        if (this.config.failOpen) {
+        if (this.runtime.config().login.failOpen) {
             this.logger.warn("Ban lookup failed for {}, allowing login (fail-open): {}", username, cause.getMessage());
 
             return;
@@ -126,7 +122,7 @@ public final class LoginListener implements Listener {
 
         this.logger.error("Ban lookup failed for {} and fail-open is disabled, denying login: {}", username, cause.getMessage());
 
-        event.disallow(Result.KICK_OTHER, this.messages.render("login.service-unavailable"));
+        event.disallow(Result.KICK_OTHER, this.runtime.messages().render("login.service-unavailable"));
     }
 
     private boolean isStillActive(ActivePunishmentView ban) {
@@ -141,7 +137,7 @@ public final class LoginListener implements Listener {
                 .map(expiry -> Duration.between(now, expiry))
                 .orElse(Duration.ZERO);
 
-        return this.messages.render(
+        return this.runtime.messages().render(
                 key, Placeholders.of("reason", ban.reason()), Placeholders.of("admin", ban.issuedByName()),
                 Placeholders.of("remaining", ban.isPermanent() ? "—" : DurationFormatter.human(remaining)),
                 Placeholders.of("expires_at", ban.expiry().map(Instant::toString).orElse("—"))

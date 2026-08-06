@@ -15,6 +15,7 @@ import net.vanfek.proxypunishments.core.cache.PunishmentCache;
 import net.vanfek.proxypunishments.core.client.PunishmentsHttpClient;
 import net.vanfek.proxypunishments.core.config.ConfigLoader;
 import net.vanfek.proxypunishments.core.config.PluginConfig;
+import net.vanfek.proxypunishments.core.config.RuntimeConfiguration;
 import net.vanfek.proxypunishments.core.i18n.MessageBundle;
 import net.vanfek.proxypunishments.core.invalidation.RedisInvalidationSubscriber;
 import net.vanfek.proxypunishments.core.metrics.PluginMetrics;
@@ -22,6 +23,7 @@ import net.vanfek.proxypunishments.core.metrics.StatusFormat;
 import net.vanfek.proxypunishments.core.permission.LuckPermsPermissionChecker;
 import net.vanfek.proxypunishments.core.permission.NativePermissionChecker;
 import net.vanfek.proxypunishments.core.permission.PermissionChecker;
+import net.vanfek.proxypunishments.core.reload.ConfigurationReloader;
 import net.vanfek.proxypunishments.velocity.command.CommandRegistrar;
 import net.vanfek.proxypunishments.velocity.command.support.CommandContext;
 import net.vanfek.proxypunishments.velocity.listener.LoginListener;
@@ -81,9 +83,11 @@ public final class ProxyPunishmentsPlugin {
         this.invalidations.start();
 
         PermissionChecker permissions = resolvePermissionChecker();
+        RuntimeConfiguration runtime = new RuntimeConfiguration(config, messages);
+        ConfigurationReloader reloader = new ConfigurationReloader(this.dataDirectory, runtime, this.logger);
 
-        CommandContext context = new CommandContext(this.punishments, messages, permissions, this.clock, this.logger);
-        LoginListener loginListener = new LoginListener(this.punishments, messages, config.login, this.clock, this.logger);
+        CommandContext context = new CommandContext(this.punishments, runtime, reloader, permissions, this.clock, this.logger);
+        LoginListener loginListener = new LoginListener(this.punishments, runtime, this.clock, this.logger);
 
         this.proxy.getEventManager().register(this, loginListener);
 

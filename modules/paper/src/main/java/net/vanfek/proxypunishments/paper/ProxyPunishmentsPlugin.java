@@ -7,6 +7,7 @@ import net.vanfek.proxypunishments.core.cache.PunishmentCache;
 import net.vanfek.proxypunishments.core.client.PunishmentsHttpClient;
 import net.vanfek.proxypunishments.core.config.ConfigLoader;
 import net.vanfek.proxypunishments.core.config.PluginConfig;
+import net.vanfek.proxypunishments.core.config.RuntimeConfiguration;
 import net.vanfek.proxypunishments.core.i18n.MessageBundle;
 import net.vanfek.proxypunishments.core.invalidation.RedisInvalidationSubscriber;
 import net.vanfek.proxypunishments.core.metrics.PluginMetrics;
@@ -14,6 +15,7 @@ import net.vanfek.proxypunishments.core.metrics.StatusFormat;
 import net.vanfek.proxypunishments.core.permission.LuckPermsPermissionChecker;
 import net.vanfek.proxypunishments.core.permission.NativePermissionChecker;
 import net.vanfek.proxypunishments.core.permission.PermissionChecker;
+import net.vanfek.proxypunishments.core.reload.ConfigurationReloader;
 import net.vanfek.proxypunishments.paper.command.CommandRegistrar;
 import net.vanfek.proxypunishments.paper.command.support.CommandContext;
 import net.vanfek.proxypunishments.paper.listener.ChatListener;
@@ -58,10 +60,12 @@ public final class ProxyPunishmentsPlugin extends JavaPlugin {
         this.invalidations.start();
 
         PermissionChecker permissions = resolvePermissionChecker();
+        RuntimeConfiguration runtime = new RuntimeConfiguration(config, messages);
+        ConfigurationReloader reloader = new ConfigurationReloader(getDataPath(), runtime, this.logger);
 
-        CommandContext context = new CommandContext(this.punishments, messages, permissions, this.clock, this.logger);
+        CommandContext context = new CommandContext(this.punishments, runtime, reloader, permissions, this.clock, this.logger);
 
-        registerListeners(config, messages);
+        registerListeners(runtime);
         registerCommandsIfOwned(config, context);
         warnAboutMissingToken(config);
 
@@ -85,20 +89,18 @@ public final class ProxyPunishmentsPlugin extends JavaPlugin {
         this.punishments.close();
     }
 
-    private void registerListeners(PluginConfig config, MessageBundle messages) {
-        LoginListener loginListener = new LoginListener(this.punishments, messages, config.login, this.clock, this.logger);
+    private void registerListeners(RuntimeConfiguration runtime) {
+        LoginListener loginListener = new LoginListener(this.punishments, runtime, this.clock, this.logger);
+        ChatListener chatListener = new ChatListener(this.punishments, runtime, this.clock, this.logger);
 
         getServer().getPluginManager().registerEvents(loginListener, this);
+        getServer().getPluginManager().registerEvents(chatListener, this);
 
-        if (!config.chat.enforceMute) {
-            this.logger.info("chat.enforce-mute is off — mutes are recorded but nothing is blocked on this server");
-
+        if (chatListener.enforcesMute()) {
             return;
         }
 
-        ChatListener chatListener = new ChatListener(this.punishments, messages, config.chat, this.clock, this.logger);
-
-        getServer().getPluginManager().registerEvents(chatListener, this);
+        this.logger.info("chat.enforce-mute is off — mutes are recorded but nothing is blocked on this server");
     }
 
     private void registerCommandsIfOwned(PluginConfig config, CommandContext context) {

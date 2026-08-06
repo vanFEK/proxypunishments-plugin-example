@@ -5,6 +5,7 @@ import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.velocitypowered.api.command.BrigadierCommand;
 import com.velocitypowered.api.command.CommandSource;
 import com.velocitypowered.api.proxy.ProxyServer;
+import net.vanfek.proxypunishments.velocity.command.admin.ReloadCommand;
 import net.vanfek.proxypunishments.velocity.command.ip.AltsCommand;
 import net.vanfek.proxypunishments.velocity.command.ip.IpBanCommand;
 import net.vanfek.proxypunishments.velocity.command.ip.UnIpBanCommand;
@@ -56,6 +57,7 @@ public final class RootCommand {
         addFreshSubcommands(root, literal -> HistoryCommand.build(ctx, proxy, literal), "history", "log");
         addFreshSubcommands(root, literal -> ListCommand.build(ctx, literal), "list", "bans");
         addFreshSubcommands(root, literal -> StatusCommand.build(ctx, literal), "status", "stats");
+        addFreshSubcommands(root, literal -> ReloadCommand.build(ctx, literal), "reload");
 
         root.then(KickCommand.build(ctx, proxy).getNode());
 

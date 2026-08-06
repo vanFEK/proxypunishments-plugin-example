@@ -17,6 +17,7 @@ public final class PermissionNodes {
     public static final String UNIPBAN = "proxypunishments.command.unipban";
     public static final String ALTS = "proxypunishments.command.alts";
     public static final String STATUS = "proxypunishments.command.status";
+    public static final String RELOAD = "proxypunishments.command.reload";
 
     public static final String ADMIN = "proxypunishments.admin";
 

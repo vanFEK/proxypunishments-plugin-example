@@ -5,6 +5,7 @@ import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.tree.LiteralCommandNode;
 import io.papermc.paper.command.brigadier.CommandSourceStack;
 import io.papermc.paper.command.brigadier.Commands;
+import net.vanfek.proxypunishments.paper.command.admin.ReloadCommand;
 import net.vanfek.proxypunishments.paper.command.ip.AltsCommand;
 import net.vanfek.proxypunishments.paper.command.ip.IpBanCommand;
 import net.vanfek.proxypunishments.paper.command.ip.UnIpBanCommand;
@@ -57,6 +58,7 @@ public final class RootCommand {
         addFreshSubcommands(root, literal -> HistoryCommand.build(ctx, server, literal), "history", "log");
         addFreshSubcommands(root, literal -> ListCommand.build(ctx, literal), "list", "bans");
         addFreshSubcommands(root, literal -> StatusCommand.build(ctx, literal), "status", "stats");
+        addFreshSubcommands(root, literal -> ReloadCommand.build(ctx, literal), "reload");
 
         root.then(KickCommand.build(ctx, server));
 

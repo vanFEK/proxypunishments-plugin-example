@@ -17,6 +17,12 @@ usable is cached, applies a configurable fail-open policy: the player is let in 
 logged. Locking an entire network out because one internal service restarted is usually the worse
 failure; `login.fail-open: false` inverts that trade-off.
 
+![The messages the plugin sends](docs/messages-preview.svg)
+
+A render of the message templates, not an in-game screenshot:
+[`docs/preview/render_messages.py`](docs/preview/render_messages.py) draws it straight from
+`messages.yml`, so the picture cannot drift away from what an operator actually configures.
+
 ---
 
 ## How it fits together
@@ -104,8 +110,16 @@ at all is decided by `commands.mode`.
 | `/alts`       | `accounts`, `altaccounts`                             | `proxypunishments.command.alts`     |
 | `/pp kick`    | —                                                     | `proxypunishments.command.kick`     |
 | `/pp status`  | `/pp stats`                                           | `proxypunishments.command.status`   |
+| `/pp reload`  | —                                                     | `proxypunishments.command.reload`   |
 
 `proxypunishments.admin` grants all of the above.
+
+`/pp reload` re-reads `config.yml` and `messages.yml` and swaps both in at once — or neither, if one
+of them fails to parse, in which case the failure is reported and the plugin keeps serving what it
+already had. Everything bound while the plugin was starting is listed back with its running and its
+configured value, so nobody has to guess whether a restart is still needed: the service URL, token
+and timeouts, the cache sizing, the Redis connection and the command registration cannot be moved
+without one. `login.*` and `chat.*` take effect the moment the command returns.
 
 **Durations**: `30s`, `5m`, `2h30m`, `7d`, `1w`, `3M`, `1y`, or `perm` / `forever` / `0`.
 Unit letters are case sensitive — `m` is minutes, `M` is months. Overflow, zero-length and
@@ -240,7 +254,7 @@ proxy.
 ## Building
 
 ```bash
-./gradlew build          # compiles, runs tests, produces the shaded jar
+./gradlew build          # compiles, runs Checkstyle and the tests, produces the shaded jar
 ```
 
 Artifacts: `modules/velocity/build/libs/ProxyPunishments-1.0.0.jar` and
@@ -250,6 +264,13 @@ Requires JDK 25. The Gradle wrapper is committed; nothing else needs installing.
 
 The toolchain and the bytecode target are deliberately different: the build runs on a JDK 25
 toolchain but compiles with `--release 21`, so the jars load on the Java 21 servers most people run.
+
+Checkstyle is part of `build` and fails it on a style regression. The rules live in
+[`config/checkstyle/checkstyle.xml`](config/checkstyle/checkstyle.xml) and describe the conventions
+the sources already follow — a style check that demands a reformat is a style check nobody runs.
+
+Notable changes are recorded in [`CHANGELOG.md`](CHANGELOG.md). Pushing a `v*` tag runs the release
+workflow, which builds both modules and attaches the two jars to the GitHub release.
 
 ## Tests
 
@@ -275,5 +296,7 @@ Covered on purpose, because these are the places where a regression is expensive
   Redis off starting nothing, and an unreachable Redis never reaching a punishment lookup
 - the metrics behind `/pp status` — hit ratio across repeat lookups, stale answers counted apart
   from hits
+- `/pp reload` — a swap taking effect on the next message rendered, a malformed file leaving the
+  previous configuration in place, and the reply naming the settings only a restart can change
 - the Paper module — proxy auto-detection for all three `commands.mode` values, the chat mute
   decision (active, expired, service down under both fail-open settings), console identity mapping

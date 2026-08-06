@@ -133,6 +133,12 @@ status:
   redis-connected: "<dark_gray>›</dark_gray> <gray>Redis:</gray> <green>подключён</green><gray>, получено событий:</gray> <white><events></white>"
   redis-disconnected: "<dark_gray>›</dark_gray> <gray>Redis:</gray> <red>нет соединения</red><gray>, получено событий:</gray> <white><events></white>"
 
+reload:
+  success: "<gray>[<gradient:#ff8a00:#e52e71>ProxyPunishments</gradient><gray>]</gray> <green>config.yml и messages.yml перечитаны.</green>"
+  failed: "<gray>[<gradient:#ff8a00:#e52e71>ProxyPunishments</gradient><gray>]</gray> <red>Перечитать не удалось: <white><error></white></red> <gray>Плагин продолжает работать на прежних настройках.</gray>"
+  restart-header: "<gray>[<gradient:#ff8a00:#e52e71>ProxyPunishments</gradient><gray>]</gray> <yellow>Эти настройки задаются при запуске — перечитать их нельзя, нужен перезапуск:</yellow>"
+  restart-entry: "<dark_gray>›</dark_gray> <white><setting></white> <dark_gray>—</dark_gray> <gray>сейчас</gray> <white><running></white><gray>, в файле</gray> <yellow><configured></yellow>"
+
 kick:
   not-online: "<gray>[<gradient:#ff8a00:#e52e71>ProxyPunishments</gradient><gray>]</gray> <red>Игрок <white><target></white> не в сети.</red>"
   player-reason: |-
@@ -158,6 +164,7 @@ root:
     <dark_gray>›</dark_gray> <white>/pp history <player> [страница]</white>
     <dark_gray>›</dark_gray> <white>/pp list [ban|mute] [страница]</white>
     <dark_gray>›</dark_gray> <white>/pp status</white>
+    <dark_gray>›</dark_gray> <white>/pp reload</white>
     <gray>Длительность: <white>1d</white>, <white>2h30m</white>, <white>3M</white>, <white>perm</white></gray>
 
 errors:

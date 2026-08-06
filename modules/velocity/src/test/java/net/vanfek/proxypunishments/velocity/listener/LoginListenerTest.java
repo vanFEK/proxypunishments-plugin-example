@@ -11,6 +11,7 @@ import net.vanfek.proxypunishments.core.cache.PunishmentCache;
 import net.vanfek.proxypunishments.core.client.PunishmentsClient;
 import net.vanfek.proxypunishments.core.client.PunishmentsHttpException;
 import net.vanfek.proxypunishments.core.config.PluginConfig;
+import net.vanfek.proxypunishments.core.config.RuntimeConfiguration;
 import net.vanfek.proxypunishments.core.metrics.PluginMetrics;
 import net.vanfek.proxypunishments.core.i18n.MessageBundle;
 import org.junit.jupiter.api.BeforeEach;
@@ -50,7 +51,8 @@ class LoginListenerTest {
     private PunishmentsClient client;
     private PunishmentServiceImpl punishments;
     private MessageBundle messages;
-    private PluginConfig.Login config;
+    private PluginConfig config;
+    private RuntimeConfiguration runtime;
     private Player player;
     private LoginEvent event;
 
@@ -66,7 +68,8 @@ class LoginListenerTest {
                 new PluginMetrics()
         );
         this.messages = MessageBundle.load(directory);
-        this.config = new PluginConfig.Login();
+        this.config = new PluginConfig();
+        this.runtime = new RuntimeConfiguration(this.config, this.messages);
 
         this.player = mock(Player.class);
         when(this.player.getUniqueId()).thenReturn(PLAYER_UUID);
@@ -123,7 +126,7 @@ class LoginListenerTest {
     @Test
     @DisplayName("fail-open: the service is down, the player gets in and the incident is logged")
     void allowsLoginWhenServiceIsDownAndFailOpenIsOn() {
-        this.config.failOpen = true;
+        this.config.login.failOpen = true;
 
         when(this.client.findActive(PLAYER_UUID, PunishmentKind.BAN))
                 .thenReturn(CompletableFuture.failedFuture(new PunishmentsHttpException("connection refused", null)));
@@ -136,7 +139,7 @@ class LoginListenerTest {
     @Test
     @DisplayName("fail-closed: the service is down and the login is rejected with an explanation")
     void deniesLoginWhenServiceIsDownAndFailOpenIsOff() {
-        this.config.failOpen = false;
+        this.config.login.failOpen = false;
 
         when(this.client.findActive(PLAYER_UUID, PunishmentKind.BAN))
                 .thenReturn(CompletableFuture.failedFuture(new PunishmentsHttpException("connection refused", null)));
@@ -160,7 +163,7 @@ class LoginListenerTest {
     @Test
     @DisplayName("the connecting address is reported alongside the name")
     void remembersAllowedPlayersWhenEnabled() {
-        this.config.rememberPlayer = true;
+        this.config.login.rememberPlayer = true;
 
         when(this.client.findActive(PLAYER_UUID, PunishmentKind.BAN))
                 .thenReturn(CompletableFuture.completedFuture(Optional.empty()));
@@ -173,7 +176,7 @@ class LoginListenerTest {
     @Test
     @DisplayName("a failure while remembering a player never blocks the login")
     void ignoresRememberFailures() {
-        this.config.rememberPlayer = true;
+        this.config.login.rememberPlayer = true;
 
         when(this.client.findActive(PLAYER_UUID, PunishmentKind.BAN))
                 .thenReturn(CompletableFuture.completedFuture(Optional.empty()));
@@ -199,7 +202,7 @@ class LoginListenerTest {
                 new PluginMetrics()
         );
 
-        LoginListener listener = new LoginListener(service, this.messages, this.config, clock, LOGGER);
+        LoginListener listener = new LoginListener(service, this.runtime, clock, LOGGER);
 
         listener.handle(this.event).join();
         clock.advance(Duration.ofMinutes(10));
@@ -257,7 +260,7 @@ class LoginListenerTest {
     @Test
     @DisplayName("fail-open still applies when it is the IP lookup that fails")
     void allowsLoginWhenTheIpLookupFailsAndFailOpenIsOn() {
-        this.config.failOpen = true;
+        this.config.login.failOpen = true;
 
         when(this.client.findActive(PLAYER_UUID, PunishmentKind.BAN))
                 .thenReturn(CompletableFuture.completedFuture(Optional.empty()));
@@ -285,7 +288,7 @@ class LoginListenerTest {
                 new PluginMetrics()
         );
 
-        LoginListener listener = new LoginListener(service, this.messages, this.config, clock, LOGGER);
+        LoginListener listener = new LoginListener(service, this.runtime, clock, LOGGER);
 
         listener.handle(this.event).join();
         clock.advance(Duration.ofMinutes(10));
@@ -295,7 +298,7 @@ class LoginListenerTest {
     }
 
     private LoginListener listener(Clock clock) {
-        return new LoginListener(this.punishments, this.messages, this.config, clock, LOGGER);
+        return new LoginListener(this.punishments, this.runtime, clock, LOGGER);
     }
 
     private ActivePunishmentView permanentBan() {

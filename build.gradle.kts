@@ -9,6 +9,14 @@ allprojects {
 
 subprojects {
     apply(plugin = "java-library")
+    apply(plugin = "checkstyle")
+
+    extensions.configure<CheckstyleExtension> {
+        toolVersion = "10.21.0"
+        configFile = rootProject.file("config/checkstyle/checkstyle.xml")
+        isIgnoreFailures = false
+        maxWarnings = 0
+    }
 
     repositories {
         mavenCentral()
