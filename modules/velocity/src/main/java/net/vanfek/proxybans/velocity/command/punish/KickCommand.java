@@ -8,10 +8,12 @@ import com.velocitypowered.api.command.BrigadierCommand;
 import com.velocitypowered.api.command.CommandSource;
 import com.velocitypowered.api.proxy.Player;
 import com.velocitypowered.api.proxy.ProxyServer;
+import net.vanfek.proxybans.api.platform.Actor;
 import net.vanfek.proxybans.core.i18n.Placeholders;
 import net.vanfek.proxybans.core.permission.PermissionNodes;
 import net.vanfek.proxybans.velocity.command.support.CommandContext;
 import net.vanfek.proxybans.velocity.command.support.Feedback;
+import net.vanfek.proxybans.velocity.platform.VelocityActor;
 
 import java.util.Optional;
 import java.util.UUID;
@@ -23,11 +25,11 @@ public final class KickCommand {
 
     public static BrigadierCommand build(CommandContext ctx, ProxyServer proxy) {
         LiteralArgumentBuilder<CommandSource> node = LiteralArgumentBuilder.<CommandSource>literal("kick")
-                .requires(source -> ctx.permissions().allows(source, PermissionNodes.KICK))
+                .requires(source -> ctx.permissions().allows(VelocityActor.of(source), PermissionNodes.KICK))
                 .then(RequiredArgumentBuilder.<CommandSource, String>argument("target", StringArgumentType.word())
                         .then(RequiredArgumentBuilder.<CommandSource, String>argument("reason", StringArgumentType.greedyString())
                                 .executes(context -> execute(
-                                        ctx, proxy, context.getSource(),
+                                        ctx, proxy, VelocityActor.of(context.getSource()),
                                         StringArgumentType.getString(context, "target"),
                                         StringArgumentType.getString(context, "reason")
                                 ))));
@@ -35,22 +37,22 @@ public final class KickCommand {
         return new BrigadierCommand(node);
     }
 
-    private static int execute(CommandContext ctx, ProxyServer proxy, CommandSource source, String target, String reason) {
+    private static int execute(CommandContext ctx, ProxyServer proxy, Actor actor, String target, String reason) {
         Optional<Player> resolved = byUuid(proxy, target).or(() -> proxy.getPlayer(target));
 
         if (resolved.isEmpty()) {
-            Feedback.tell(ctx, source, "kick.not-online", Placeholders.of("target", target));
+            Feedback.tell(ctx, actor, "kick.not-online", Placeholders.of("target", target));
 
             return Command.SINGLE_SUCCESS;
         }
 
         Player player = resolved.get();
 
-        ctx.bans().invalidate(player.getUniqueId());
+        ctx.punishments().invalidate(player.getUniqueId());
         player.disconnect(ctx.messages().render("kick.player-reason", Placeholders.of("reason", reason)));
 
         Feedback.tell(
-                ctx, source, "kick.done",
+                ctx, actor, "kick.done",
                 Placeholders.of("target", player.getUsername()), Placeholders.of("reason", reason)
         );
 

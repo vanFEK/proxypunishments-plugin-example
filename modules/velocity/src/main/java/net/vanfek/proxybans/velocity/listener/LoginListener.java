@@ -6,8 +6,9 @@ import com.velocitypowered.api.event.Subscribe;
 import com.velocitypowered.api.event.connection.LoginEvent;
 import com.velocitypowered.api.proxy.Player;
 import net.kyori.adventure.text.Component;
-import net.vanfek.proxybans.api.ActiveBanView;
-import net.vanfek.proxybans.core.BanServiceImpl;
+import net.vanfek.proxybans.api.ActivePunishmentView;
+import net.vanfek.proxybans.api.PunishmentKind;
+import net.vanfek.proxybans.core.PunishmentServiceImpl;
 import net.vanfek.proxybans.core.config.PluginConfig;
 import net.vanfek.proxybans.core.duration.DurationFormatter;
 import net.vanfek.proxybans.core.i18n.MessageBundle;
@@ -25,18 +26,18 @@ import java.util.concurrent.CompletionException;
 // Fail-open: one banned player slipping in beats locking the network out; the ban service's stale cache covers brief outages.
 public final class LoginListener {
 
-    private final BanServiceImpl bans;
+    private final PunishmentServiceImpl punishments;
     private final MessageBundle messages;
     private final PluginConfig.Login config;
     private final Clock clock;
     private final Logger logger;
 
     public LoginListener(
-            @NotNull BanServiceImpl bans, @NotNull MessageBundle messages,
+            @NotNull PunishmentServiceImpl punishments, @NotNull MessageBundle messages,
             @NotNull PluginConfig.Login config, @NotNull Clock clock,
             @NotNull Logger logger
     ) {
-        this.bans = bans;
+        this.punishments = punishments;
         this.messages = messages;
         this.config = config;
         this.clock = clock;
@@ -51,9 +52,9 @@ public final class LoginListener {
     public @NotNull CompletableFuture<Void> handle(@NotNull LoginEvent event) {
         Player player = event.getPlayer();
 
-        return this.bans.findActiveBan(player.getUniqueId())
+        return this.punishments.findActive(player.getUniqueId(), PunishmentKind.BAN)
                 .thenCompose(active -> {
-                    Optional<ActiveBanView> enforceable = active.filter(this::isStillActive);
+                    Optional<ActivePunishmentView> enforceable = active.filter(this::isStillActive);
 
                     if (enforceable.isPresent()) {
                         event.setResult(ComponentResult.denied(renderBan(enforceable.get())));
@@ -75,7 +76,7 @@ public final class LoginListener {
             return CompletableFuture.completedFuture(null);
         }
 
-        return this.bans.rememberPlayer(player.getUniqueId(), player.getUsername())
+        return this.punishments.rememberPlayer(player.getUniqueId(), player.getUsername())
                 .exceptionally(throwable -> {
                     this.logger.warn("Failed to remember player {}: {}", player.getUsername(), unwrap(throwable).getMessage());
 
@@ -98,11 +99,11 @@ public final class LoginListener {
         event.setResult(ComponentResult.denied(this.messages.render("login.service-unavailable")));
     }
 
-    private boolean isStillActive(ActiveBanView ban) {
+    private boolean isStillActive(ActivePunishmentView ban) {
         return ban.isPermanent() || !ban.isExpired(this.clock.instant());
     }
 
-    private Component renderBan(ActiveBanView ban) {
+    private Component renderBan(ActivePunishmentView ban) {
         String key = ban.isPermanent() ? "login.kick-permanent" : "login.kick-temporary";
         Instant now = this.clock.instant();
 

@@ -4,12 +4,16 @@ import com.velocitypowered.api.command.BrigadierCommand;
 import com.velocitypowered.api.command.CommandManager;
 import com.velocitypowered.api.command.CommandMeta;
 import com.velocitypowered.api.proxy.ProxyServer;
-import net.vanfek.proxybans.velocity.command.lookup.BanHistoryCommand;
-import net.vanfek.proxybans.velocity.command.lookup.BanInfoCommand;
-import net.vanfek.proxybans.velocity.command.lookup.BanListCommand;
+import net.vanfek.proxybans.velocity.command.lookup.HistoryCommand;
+import net.vanfek.proxybans.velocity.command.lookup.InfoCommand;
+import net.vanfek.proxybans.velocity.command.lookup.ListCommand;
+import net.vanfek.proxybans.velocity.command.mute.MuteCommand;
+import net.vanfek.proxybans.velocity.command.mute.TempMuteCommand;
+import net.vanfek.proxybans.velocity.command.mute.UnmuteCommand;
 import net.vanfek.proxybans.velocity.command.punish.BanCommand;
 import net.vanfek.proxybans.velocity.command.punish.TempBanCommand;
 import net.vanfek.proxybans.velocity.command.punish.UnbanCommand;
+import net.vanfek.proxybans.velocity.command.punish.WarnCommand;
 import net.vanfek.proxybans.velocity.command.support.CommandContext;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
@@ -41,7 +45,9 @@ public final class CommandRegistrar {
         registerRoot(plugin, manager);
 
         if (this.registerTopLevelAliases) {
-            registerTopLevel(plugin, manager);
+            registerBans(plugin, manager);
+            registerMutes(plugin, manager);
+            registerLookups(plugin, manager);
         }
     }
 
@@ -56,7 +62,7 @@ public final class CommandRegistrar {
         manager.register(meta, command);
     }
 
-    private void registerTopLevel(Object plugin, CommandManager manager) {
+    private void registerBans(Object plugin, CommandManager manager) {
         registerIfNameIsFree(
                 plugin, manager,
                 literal -> BanCommand.build(this.context, this.proxy, literal),
@@ -74,23 +80,51 @@ public final class CommandRegistrar {
                 literal -> UnbanCommand.build(this.context, literal),
                 "unban", List.of("pardon", "unblacklist")
         );
+    }
 
+    private void registerMutes(Object plugin, CommandManager manager) {
         registerIfNameIsFree(
                 plugin, manager,
-                literal -> BanInfoCommand.build(this.context, this.proxy, literal),
-                "baninfo", List.of("checkban", "isbanned", "banstatus")
+                literal -> MuteCommand.build(this.context, this.proxy, literal),
+                "mute", List.of("permmute", "silence", "muteplayer")
         );
 
         registerIfNameIsFree(
                 plugin, manager,
-                literal -> BanHistoryCommand.build(this.context, this.proxy, literal),
+                literal -> TempMuteCommand.build(this.context, this.proxy, literal),
+                "tempmute", List.of("tmute", "timedmute")
+        );
+
+        registerIfNameIsFree(
+                plugin, manager,
+                literal -> UnmuteCommand.build(this.context, literal),
+                "unmute", List.of("unsilence", "pardonmute")
+        );
+
+        registerIfNameIsFree(
+                plugin, manager,
+                literal -> WarnCommand.build(this.context, this.proxy, literal),
+                "warn", List.of("caution", "warnplayer")
+        );
+    }
+
+    private void registerLookups(Object plugin, CommandManager manager) {
+        registerIfNameIsFree(
+                plugin, manager,
+                literal -> InfoCommand.build(this.context, this.proxy, literal),
+                "baninfo", List.of("checkban", "isbanned", "banstatus", "punishmentinfo")
+        );
+
+        registerIfNameIsFree(
+                plugin, manager,
+                literal -> HistoryCommand.build(this.context, this.proxy, literal),
                 "banhistory", List.of("banlog", "punishments")
         );
 
         registerIfNameIsFree(
                 plugin, manager,
-                literal -> BanListCommand.build(this.context, literal),
-                "banlist", List.of("bans", "activebans")
+                literal -> ListCommand.build(this.context, literal),
+                "banlist", List.of("bans", "activebans", "punishmentlist")
         );
     }
 

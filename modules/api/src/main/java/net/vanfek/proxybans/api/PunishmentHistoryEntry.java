@@ -8,8 +8,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 public record PunishmentHistoryEntry(
-        @NotNull UUID playerUuid,
-        @NotNull UUID issuedByUuid, @NotNull String issuedByName,
+        @NotNull UUID playerUuid, @NotNull UUID issuedByUuid, @NotNull String issuedByName,
         @NotNull Action action, @NotNull String reason,
         @NotNull Instant happenedAt, @Nullable Instant expiresAt
 ) {
@@ -22,7 +21,11 @@ public record PunishmentHistoryEntry(
 
         BAN,
         PERMBAN,
-        UNBAN
+        UNBAN,
+        MUTE,
+        PERMMUTE,
+        UNMUTE,
+        WARN
 
     }
 

@@ -7,13 +7,16 @@ import com.mojang.brigadier.builder.RequiredArgumentBuilder;
 import com.velocitypowered.api.command.BrigadierCommand;
 import com.velocitypowered.api.command.CommandSource;
 import com.velocitypowered.api.proxy.ProxyServer;
+import net.vanfek.proxybans.api.PunishmentKind;
+import net.vanfek.proxybans.api.platform.Actor;
+import net.vanfek.proxybans.core.command.PunishmentArguments;
 import net.vanfek.proxybans.core.duration.DurationFormatter;
 import net.vanfek.proxybans.core.i18n.Placeholders;
 import net.vanfek.proxybans.core.permission.PermissionNodes;
 import net.vanfek.proxybans.velocity.command.support.CommandContext;
 import net.vanfek.proxybans.velocity.command.support.Feedback;
-import net.vanfek.proxybans.velocity.command.support.Issuer;
 import net.vanfek.proxybans.velocity.command.support.PlayerSuggestions;
+import net.vanfek.proxybans.velocity.platform.VelocityActor;
 
 import java.time.Duration;
 import java.util.UUID;
@@ -26,12 +29,12 @@ public final class BanCommand {
 
     public static BrigadierCommand build(CommandContext ctx, ProxyServer proxy, String literal) {
         LiteralArgumentBuilder<CommandSource> node = LiteralArgumentBuilder.<CommandSource>literal(literal)
-                .requires(source -> ctx.permissions().allows(source, PermissionNodes.BAN))
+                .requires(source -> ctx.permissions().allows(VelocityActor.of(source), PermissionNodes.BAN))
                 .then(RequiredArgumentBuilder.<CommandSource, String>argument("player", StringArgumentType.word())
                         .suggests((context, builder) -> PlayerSuggestions.matching(proxy, builder))
                         .then(RequiredArgumentBuilder.<CommandSource, String>argument("arguments", StringArgumentType.greedyString())
                                 .executes(context -> execute(
-                                        ctx, context.getSource(),
+                                        ctx, VelocityActor.of(context.getSource()),
                                         StringArgumentType.getString(context, "player"),
                                         StringArgumentType.getString(context, "arguments")
                                 ))));
@@ -39,36 +42,35 @@ public final class BanCommand {
         return new BrigadierCommand(node);
     }
 
-    private static int execute(CommandContext ctx, CommandSource source, String playerName, String tail) {
-        BanArguments arguments;
+    private static int execute(CommandContext ctx, Actor actor, String playerName, String tail) {
+        PunishmentArguments arguments;
 
         try {
-            arguments = BanArguments.parse(tail);
+            arguments = PunishmentArguments.parse(tail);
         } catch (IllegalArgumentException ex) {
-            Feedback.tell(ctx, source, "errors.bad-duration", Placeholders.of("value", tail));
+            Feedback.tell(ctx, actor, "errors.bad-duration", Placeholders.of("value", tail));
 
             return Command.SINGLE_SUCCESS;
         }
 
         if (!arguments.hasReason()) {
-            Feedback.tell(ctx, source, "errors.reason-required");
+            Feedback.tell(ctx, actor, "errors.reason-required");
 
             return Command.SINGLE_SUCCESS;
         }
 
-        Issuer issuer = Issuer.of(source);
         Duration duration = arguments.duration().duration();
 
-        ctx.bans().resolveUuid(playerName)
+        ctx.punishments().resolveUuid(playerName)
                 .thenCompose(resolved -> resolved
-                        .map(uuid -> issue(ctx, source, playerName, uuid, arguments.reason(), duration, issuer))
+                        .map(uuid -> issue(ctx, actor, playerName, uuid, arguments.reason(), duration))
                         .orElseGet(() -> {
-                            Feedback.tell(ctx, source, "errors.unknown-player", Placeholders.of("player", playerName));
+                            Feedback.tell(ctx, actor, "errors.unknown-player", Placeholders.of("player", playerName));
 
                             return CompletableFuture.completedFuture(null);
                         }))
                 .exceptionally(throwable -> {
-                    Feedback.reportFailure(ctx, source, throwable);
+                    Feedback.reportFailure(ctx, actor, throwable);
 
                     return null;
                 });
@@ -77,16 +79,16 @@ public final class BanCommand {
     }
 
     private static CompletableFuture<Void> issue(
-            CommandContext ctx, CommandSource source,
+            CommandContext ctx, Actor actor,
             String playerName, UUID uuid,
-            String reason, Duration duration, Issuer issuer
+            String reason, Duration duration
     ) {
-        return ctx.bans().issueBan(uuid, issuer.uuid(), issuer.name(), reason, duration)
+        return ctx.punishments().issue(uuid, PunishmentKind.BAN, actor.uuid(), actor.name(), reason, duration)
                 .thenAccept(ban -> {
                     String key = ban.isPermanent() ? "ban.success-permanent" : "ban.success-temporary";
 
                     Feedback.tell(
-                            ctx, source, key,
+                            ctx, actor, key,
                             Placeholders.of("player", playerName), Placeholders.of("reason", reason),
                             Placeholders.of("duration", duration == null ? "—" : DurationFormatter.human(duration))
                     );

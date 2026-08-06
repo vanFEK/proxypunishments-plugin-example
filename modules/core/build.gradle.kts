@@ -1,8 +1,8 @@
 dependencies {
     api(project(":api"))
 
-    compileOnly(libs.velocity.api)
-    annotationProcessor(libs.velocity.api)
+    compileOnly(libs.adventure.api)
+    compileOnly(libs.adventure.minimessage)
     compileOnly(libs.luckperms.api)
     compileOnly(libs.gson)
     compileOnly(libs.annotations)
@@ -16,7 +16,8 @@ dependencies {
     testImplementation(libs.mockito)
     testImplementation(libs.bytebuddy)
     testImplementation(libs.bytebuddy.agent)
-    testImplementation(libs.velocity.api)
+    testImplementation(libs.adventure.api)
+    testImplementation(libs.adventure.minimessage)
     testImplementation(libs.luckperms.api)
     testImplementation(libs.gson)
     testImplementation(libs.annotations)

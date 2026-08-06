@@ -1,0 +1,14 @@
+name: ProxyBans
+version: "1.0.0"
+main: net.vanfek.proxybans.paper.ProxyBansPlugin
+api-version: "1.21"
+description: "Backend-side punishment enforcement for Paper, backed by a standalone punishments service"
+website: "https://github.com/vanfek/proxybans-plugin"
+authors:
+  - vanfek
+dependencies:
+  server:
+    LuckPerms:
+      load: BEFORE
+      required: false
+      join-classpath: true

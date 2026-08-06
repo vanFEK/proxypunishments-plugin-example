@@ -5,15 +5,20 @@ import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.velocitypowered.api.command.BrigadierCommand;
 import com.velocitypowered.api.command.CommandSource;
 import com.velocitypowered.api.proxy.ProxyServer;
-import net.vanfek.proxybans.velocity.command.lookup.BanHistoryCommand;
-import net.vanfek.proxybans.velocity.command.lookup.BanInfoCommand;
-import net.vanfek.proxybans.velocity.command.lookup.BanListCommand;
+import net.vanfek.proxybans.velocity.command.lookup.HistoryCommand;
+import net.vanfek.proxybans.velocity.command.lookup.InfoCommand;
+import net.vanfek.proxybans.velocity.command.lookup.ListCommand;
+import net.vanfek.proxybans.velocity.command.mute.MuteCommand;
+import net.vanfek.proxybans.velocity.command.mute.TempMuteCommand;
+import net.vanfek.proxybans.velocity.command.mute.UnmuteCommand;
 import net.vanfek.proxybans.velocity.command.punish.BanCommand;
 import net.vanfek.proxybans.velocity.command.punish.KickCommand;
 import net.vanfek.proxybans.velocity.command.punish.TempBanCommand;
 import net.vanfek.proxybans.velocity.command.punish.UnbanCommand;
+import net.vanfek.proxybans.velocity.command.punish.WarnCommand;
 import net.vanfek.proxybans.velocity.command.support.CommandContext;
 import net.vanfek.proxybans.velocity.command.support.Feedback;
+import net.vanfek.proxybans.velocity.platform.VelocityActor;
 
 import java.util.function.Function;
 
@@ -28,7 +33,7 @@ public final class RootCommand {
     public static BrigadierCommand build(CommandContext ctx, ProxyServer proxy) {
         LiteralArgumentBuilder<CommandSource> root = LiteralArgumentBuilder.<CommandSource>literal(ROOT_LITERAL)
                 .executes(context -> {
-                    Feedback.tell(ctx, context.getSource(), "root.help");
+                    Feedback.tell(ctx, VelocityActor.of(context.getSource()), "root.help");
 
                     return Command.SINGLE_SUCCESS;
                 });
@@ -36,9 +41,13 @@ public final class RootCommand {
         addFreshSubcommands(root, literal -> BanCommand.build(ctx, proxy, literal), "ban", "permban");
         addFreshSubcommands(root, literal -> TempBanCommand.build(ctx, proxy, literal), "tempban", "tban");
         addFreshSubcommands(root, literal -> UnbanCommand.build(ctx, literal), "unban", "pardon");
-        addFreshSubcommands(root, literal -> BanInfoCommand.build(ctx, proxy, literal), "info", "check");
-        addFreshSubcommands(root, literal -> BanHistoryCommand.build(ctx, proxy, literal), "history", "log");
-        addFreshSubcommands(root, literal -> BanListCommand.build(ctx, literal), "list", "bans");
+        addFreshSubcommands(root, literal -> MuteCommand.build(ctx, proxy, literal), "mute", "permmute");
+        addFreshSubcommands(root, literal -> TempMuteCommand.build(ctx, proxy, literal), "tempmute", "tmute");
+        addFreshSubcommands(root, literal -> UnmuteCommand.build(ctx, literal), "unmute", "unsilence");
+        addFreshSubcommands(root, literal -> WarnCommand.build(ctx, proxy, literal), "warn", "caution");
+        addFreshSubcommands(root, literal -> InfoCommand.build(ctx, proxy, literal), "info", "check");
+        addFreshSubcommands(root, literal -> HistoryCommand.build(ctx, proxy, literal), "history", "log");
+        addFreshSubcommands(root, literal -> ListCommand.build(ctx, literal), "list", "bans");
 
         root.then(KickCommand.build(ctx, proxy).getNode());
 

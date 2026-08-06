@@ -22,6 +22,7 @@ dependencies {
     testImplementation(libs.luckperms.api)
     testImplementation(libs.gson)
     testImplementation(libs.annotations)
+    testImplementation(libs.adventure.plain)
     testRuntimeOnly(libs.junit.platform.launcher)
 }
 

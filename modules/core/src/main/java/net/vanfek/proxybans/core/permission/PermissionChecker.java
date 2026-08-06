@@ -1,14 +1,14 @@
 package net.vanfek.proxybans.core.permission;
 
-import com.velocitypowered.api.command.CommandSource;
+import net.vanfek.proxybans.api.platform.Actor;
 import org.jetbrains.annotations.NotNull;
 
 public interface PermissionChecker {
 
-    boolean hasPermission(@NotNull CommandSource source, @NotNull String node);
+    boolean hasPermission(@NotNull Actor actor, @NotNull String node);
 
-    default boolean allows(@NotNull CommandSource source, @NotNull String node) {
-        return hasPermission(source, node) || hasPermission(source, PermissionNodes.ADMIN);
+    default boolean allows(@NotNull Actor actor, @NotNull String node) {
+        return hasPermission(actor, node) || hasPermission(actor, PermissionNodes.ADMIN);
     }
 
 }

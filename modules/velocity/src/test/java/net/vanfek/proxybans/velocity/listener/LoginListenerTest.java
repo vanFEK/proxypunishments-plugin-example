@@ -3,12 +3,13 @@ package net.vanfek.proxybans.velocity.listener;
 import com.velocitypowered.api.event.ResultedEvent.ComponentResult;
 import com.velocitypowered.api.event.connection.LoginEvent;
 import com.velocitypowered.api.proxy.Player;
-import net.vanfek.proxybans.api.ActiveBanView;
+import net.vanfek.proxybans.api.ActivePunishmentView;
 import net.vanfek.proxybans.api.BanType;
-import net.vanfek.proxybans.core.BanServiceImpl;
-import net.vanfek.proxybans.core.cache.BanCache;
-import net.vanfek.proxybans.core.client.BansClient;
-import net.vanfek.proxybans.core.client.BansHttpException;
+import net.vanfek.proxybans.api.PunishmentKind;
+import net.vanfek.proxybans.core.PunishmentServiceImpl;
+import net.vanfek.proxybans.core.cache.PunishmentCache;
+import net.vanfek.proxybans.core.client.PunishmentsClient;
+import net.vanfek.proxybans.core.client.PunishmentsHttpException;
 import net.vanfek.proxybans.core.config.PluginConfig;
 import net.vanfek.proxybans.core.i18n.MessageBundle;
 import org.junit.jupiter.api.BeforeEach;
@@ -42,8 +43,8 @@ class LoginListenerTest {
     private static final Instant NOW = Instant.parse("2026-01-01T00:00:00Z");
     private static final Logger LOGGER = LoggerFactory.getLogger(LoginListenerTest.class);
 
-    private BansClient client;
-    private BanServiceImpl bans;
+    private PunishmentsClient client;
+    private PunishmentServiceImpl punishments;
     private MessageBundle messages;
     private PluginConfig.Login config;
     private Player player;
@@ -51,12 +52,12 @@ class LoginListenerTest {
 
     @BeforeEach
     void setUp(@TempDir Path directory) throws IOException {
-        this.client = mock(BansClient.class);
+        this.client = mock(PunishmentsClient.class);
 
         PluginConfig.Cache cacheConfig = new PluginConfig.Cache();
         Clock clock = Clock.fixed(NOW, ZoneOffset.UTC);
 
-        this.bans = new BanServiceImpl(this.client, new BanCache(cacheConfig, clock));
+        this.punishments = new PunishmentServiceImpl(this.client, new PunishmentCache(cacheConfig, clock));
         this.messages = MessageBundle.load(directory);
         this.config = new PluginConfig.Login();
 
@@ -72,7 +73,7 @@ class LoginListenerTest {
 
     @Test
     void deniesLoginForAnActiveBan() {
-        when(this.client.findActiveBan(PLAYER_UUID))
+        when(this.client.findActive(PLAYER_UUID, PunishmentKind.BAN))
                 .thenReturn(CompletableFuture.completedFuture(Optional.of(permanentBan())));
 
         listener(Clock.fixed(NOW, ZoneOffset.UTC)).handle(this.event).join();
@@ -83,14 +84,14 @@ class LoginListenerTest {
     @Test
     @DisplayName("a ban whose expiry has passed no longer blocks the login")
     void allowsLoginWhenTheBanHasExpired() {
-        ActiveBanView expired = new ActiveBanView(
+        ActivePunishmentView expired = new ActivePunishmentView(
                 1L, PLAYER_UUID, "Steve",
+                PunishmentKind.BAN, BanType.TEMPORARY,
                 UUID.randomUUID(), "Admin",
-                "griefing", NOW.minus(Duration.ofDays(2)), NOW.minus(Duration.ofDays(1)),
-                BanType.TEMPORARY
+                "griefing", NOW.minus(Duration.ofDays(2)), NOW.minus(Duration.ofDays(1))
         );
 
-        when(this.client.findActiveBan(PLAYER_UUID))
+        when(this.client.findActive(PLAYER_UUID, PunishmentKind.BAN))
                 .thenReturn(CompletableFuture.completedFuture(Optional.of(expired)));
 
         listener(Clock.fixed(NOW, ZoneOffset.UTC)).handle(this.event).join();
@@ -99,12 +100,24 @@ class LoginListenerTest {
     }
 
     @Test
+    @DisplayName("an active mute never blocks the login")
+    void ignoresMutesOnLogin() {
+        when(this.client.findActive(PLAYER_UUID, PunishmentKind.BAN))
+                .thenReturn(CompletableFuture.completedFuture(Optional.empty()));
+
+        listener(Clock.fixed(NOW, ZoneOffset.UTC)).handle(this.event).join();
+
+        verify(this.client, never()).findActive(PLAYER_UUID, PunishmentKind.MUTE);
+        verify(this.event, never()).setResult(any());
+    }
+
+    @Test
     @DisplayName("fail-open: the service is down, the player gets in and the incident is logged")
     void allowsLoginWhenServiceIsDownAndFailOpenIsOn() {
         this.config.failOpen = true;
 
-        when(this.client.findActiveBan(PLAYER_UUID))
-                .thenReturn(CompletableFuture.failedFuture(new BansHttpException("connection refused", null)));
+        when(this.client.findActive(PLAYER_UUID, PunishmentKind.BAN))
+                .thenReturn(CompletableFuture.failedFuture(new PunishmentsHttpException("connection refused", null)));
 
         listener(Clock.fixed(NOW, ZoneOffset.UTC)).handle(this.event).join();
 
@@ -116,8 +129,8 @@ class LoginListenerTest {
     void deniesLoginWhenServiceIsDownAndFailOpenIsOff() {
         this.config.failOpen = false;
 
-        when(this.client.findActiveBan(PLAYER_UUID))
-                .thenReturn(CompletableFuture.failedFuture(new BansHttpException("connection refused", null)));
+        when(this.client.findActive(PLAYER_UUID, PunishmentKind.BAN))
+                .thenReturn(CompletableFuture.failedFuture(new PunishmentsHttpException("connection refused", null)));
 
         listener(Clock.fixed(NOW, ZoneOffset.UTC)).handle(this.event).join();
 
@@ -127,7 +140,7 @@ class LoginListenerTest {
     @Test
     @DisplayName("a banned player is not reported to the known-players endpoint")
     void doesNotRememberDeniedPlayers() {
-        when(this.client.findActiveBan(PLAYER_UUID))
+        when(this.client.findActive(PLAYER_UUID, PunishmentKind.BAN))
                 .thenReturn(CompletableFuture.completedFuture(Optional.of(permanentBan())));
 
         listener(Clock.fixed(NOW, ZoneOffset.UTC)).handle(this.event).join();
@@ -139,7 +152,7 @@ class LoginListenerTest {
     void remembersAllowedPlayersWhenEnabled() {
         this.config.rememberPlayer = true;
 
-        when(this.client.findActiveBan(PLAYER_UUID))
+        when(this.client.findActive(PLAYER_UUID, PunishmentKind.BAN))
                 .thenReturn(CompletableFuture.completedFuture(Optional.empty()));
 
         listener(Clock.fixed(NOW, ZoneOffset.UTC)).handle(this.event).join();
@@ -152,10 +165,10 @@ class LoginListenerTest {
     void ignoresRememberFailures() {
         this.config.rememberPlayer = true;
 
-        when(this.client.findActiveBan(PLAYER_UUID))
+        when(this.client.findActive(PLAYER_UUID, PunishmentKind.BAN))
                 .thenReturn(CompletableFuture.completedFuture(Optional.empty()));
         when(this.client.rememberPlayer(any(), any()))
-                .thenReturn(CompletableFuture.failedFuture(new BansHttpException("boom", null)));
+                .thenReturn(CompletableFuture.failedFuture(new PunishmentsHttpException("boom", null)));
 
         listener(Clock.fixed(NOW, ZoneOffset.UTC)).handle(this.event).join();
 
@@ -165,13 +178,13 @@ class LoginListenerTest {
     @Test
     @DisplayName("stale cache: the service dies after one good answer and the ban is still enforced")
     void keepsEnforcingBanFromStaleCache() {
-        when(this.client.findActiveBan(PLAYER_UUID))
+        when(this.client.findActive(PLAYER_UUID, PunishmentKind.BAN))
                 .thenReturn(CompletableFuture.completedFuture(Optional.of(permanentBan())))
-                .thenReturn(CompletableFuture.failedFuture(new BansHttpException("connection refused", null)));
+                .thenReturn(CompletableFuture.failedFuture(new PunishmentsHttpException("connection refused", null)));
 
         PluginConfig.Cache cacheConfig = new PluginConfig.Cache();
         MovingClock clock = new MovingClock(NOW);
-        BanServiceImpl service = new BanServiceImpl(this.client, new BanCache(cacheConfig, clock));
+        PunishmentServiceImpl service = new PunishmentServiceImpl(this.client, new PunishmentCache(cacheConfig, clock));
 
         LoginListener listener = new LoginListener(service, this.messages, this.config, clock, LOGGER);
 
@@ -183,15 +196,15 @@ class LoginListenerTest {
     }
 
     private LoginListener listener(Clock clock) {
-        return new LoginListener(this.bans, this.messages, this.config, clock, LOGGER);
+        return new LoginListener(this.punishments, this.messages, this.config, clock, LOGGER);
     }
 
-    private ActiveBanView permanentBan() {
-        return new ActiveBanView(
+    private ActivePunishmentView permanentBan() {
+        return new ActivePunishmentView(
                 1L, PLAYER_UUID, "Steve",
+                PunishmentKind.BAN, BanType.PERMANENT,
                 UUID.randomUUID(), "Admin",
-                "griefing", NOW.minus(Duration.ofDays(1)), null,
-                BanType.PERMANENT
+                "griefing", NOW.minus(Duration.ofDays(1)), null
         );
     }
 

@@ -38,9 +38,11 @@ jobs:
           path: modules/*/build/reports/tests/test
           retention-days: 7
 
-      - name: Upload plugin jar
+      - name: Upload plugin jars
         uses: actions/upload-artifact@v4
         with:
           name: ProxyBans
-          path: modules/velocity/build/libs/ProxyBans-*.jar
+          path: |
+            modules/velocity/build/libs/ProxyBans-*.jar
+            modules/paper/build/libs/ProxyBans-Paper-*.jar
           retention-days: 7

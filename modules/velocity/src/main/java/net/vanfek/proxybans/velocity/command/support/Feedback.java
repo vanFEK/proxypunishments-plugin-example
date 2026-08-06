@@ -1,8 +1,8 @@
 package net.vanfek.proxybans.velocity.command.support;
 
-import com.velocitypowered.api.command.CommandSource;
 import net.kyori.adventure.text.minimessage.tag.resolver.TagResolver;
-import net.vanfek.proxybans.core.client.BansHttpException;
+import net.vanfek.proxybans.api.platform.Actor;
+import net.vanfek.proxybans.core.client.PunishmentsHttpException;
 
 import java.util.concurrent.CompletionException;
 
@@ -13,22 +13,22 @@ public final class Feedback {
     private Feedback() {
     }
 
-    public static void tell(CommandContext ctx, CommandSource source, String key, TagResolver... resolvers) {
-        source.sendMessage(ctx.messages().render(key, resolvers));
+    public static void tell(CommandContext ctx, Actor actor, String key, TagResolver... resolvers) {
+        actor.send(ctx.messages().render(key, resolvers));
     }
 
-    public static void reportFailure(CommandContext ctx, CommandSource source, Throwable throwable) {
+    public static void reportFailure(CommandContext ctx, Actor actor, Throwable throwable) {
         Throwable cause = unwrap(throwable);
 
-        if (cause instanceof BansHttpException http && http.hasStatus()) {
-            ctx.logger().warn("bans-service returned HTTP {}: {}", http.statusCode(), http.responseBody(), http);
-            tell(ctx, source, "errors.service-status", of("status", http.statusCode()));
+        if (cause instanceof PunishmentsHttpException http && http.hasStatus()) {
+            ctx.logger().warn("punishments-service returned HTTP {}: {}", http.statusCode(), http.responseBody(), http);
+            tell(ctx, actor, "errors.service-status", of("status", http.statusCode()));
 
             return;
         }
 
-        ctx.logger().warn("Command against bans-service failed: {}", cause.getMessage(), cause);
-        tell(ctx, source, "errors.service-down");
+        ctx.logger().warn("Command against punishments-service failed: {}", cause.getMessage(), cause);
+        tell(ctx, actor, "errors.service-down");
     }
 
     private static Throwable unwrap(Throwable throwable) {

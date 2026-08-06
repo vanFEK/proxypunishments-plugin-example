@@ -10,9 +10,9 @@ import com.velocitypowered.api.plugin.annotation.DataDirectory;
 import com.velocitypowered.api.proxy.ProxyServer;
 import net.luckperms.api.LuckPerms;
 import net.luckperms.api.LuckPermsProvider;
-import net.vanfek.proxybans.core.BanServiceImpl;
-import net.vanfek.proxybans.core.cache.BanCache;
-import net.vanfek.proxybans.core.client.BansHttpClient;
+import net.vanfek.proxybans.core.PunishmentServiceImpl;
+import net.vanfek.proxybans.core.cache.PunishmentCache;
+import net.vanfek.proxybans.core.client.PunishmentsHttpClient;
 import net.vanfek.proxybans.core.config.ConfigLoader;
 import net.vanfek.proxybans.core.config.PluginConfig;
 import net.vanfek.proxybans.core.i18n.MessageBundle;
@@ -32,7 +32,7 @@ import java.time.Clock;
         id = "proxybans",
         name = "ProxyBans",
         version = "1.0.0",
-        description = "Proxy-side ban system for Velocity, backed by a standalone bans service",
+        description = "Proxy-side punishment system for Velocity, backed by a standalone punishments service",
         url = "https://github.com/vanfek/proxybans-plugin",
         authors = {"vanfek"},
         dependencies = {@Dependency(id = "luckperms", optional = true)}
@@ -44,7 +44,7 @@ public final class ProxyBansPlugin {
     private final Path dataDirectory;
     private final Clock clock;
 
-    private BanServiceImpl banService;
+    private PunishmentServiceImpl punishments;
 
     @Inject
     public ProxyBansPlugin(ProxyServer proxy, Logger logger, @DataDirectory Path dataDirectory) {
@@ -67,15 +67,15 @@ public final class ProxyBansPlugin {
             return;
         }
 
-        BansHttpClient httpClient = new BansHttpClient(config.service);
-        BanCache cache = new BanCache(config.cache, this.clock);
+        PunishmentsHttpClient httpClient = new PunishmentsHttpClient(config.service);
+        PunishmentCache cache = new PunishmentCache(config.cache, this.clock);
 
-        this.banService = new BanServiceImpl(httpClient, cache);
+        this.punishments = new PunishmentServiceImpl(httpClient, cache);
 
         PermissionChecker permissions = resolvePermissionChecker();
 
-        CommandContext context = new CommandContext(this.banService, messages, permissions, this.clock, this.logger);
-        LoginListener loginListener = new LoginListener(this.banService, messages, config.login, this.clock, this.logger);
+        CommandContext context = new CommandContext(this.punishments, messages, permissions, this.clock, this.logger);
+        LoginListener loginListener = new LoginListener(this.punishments, messages, config.login, this.clock, this.logger);
 
         this.proxy.getEventManager().register(this, loginListener);
 
@@ -88,11 +88,11 @@ public final class ProxyBansPlugin {
 
     @Subscribe
     public void onProxyShutdown(ProxyShutdownEvent event) {
-        if (this.banService == null) {
+        if (this.punishments == null) {
             return;
         }
 
-        this.banService.close();
+        this.punishments.close();
     }
 
     private PluginConfig loadConfigOrBuiltInDefaults() {
@@ -100,7 +100,7 @@ public final class ProxyBansPlugin {
             return new ConfigLoader(this.dataDirectory).load();
         } catch (IOException | RuntimeException ex) {
             this.logger.error("Could not load config.yml — falling back to built-in defaults, "
-                    + "ban checks will fail until this is fixed", ex);
+                    + "punishment checks will fail until this is fixed", ex);
 
             return new PluginConfig();
         }
@@ -133,8 +133,8 @@ public final class ProxyBansPlugin {
             return;
         }
 
-        this.logger.error("service.token is empty in config.yml — the bans service rejects unauthenticated "
-                + "requests, so every ban check will fail until a token is set");
+        this.logger.error("service.token is empty in config.yml — the punishments service rejects unauthenticated "
+                + "requests, so every punishment check will fail until a token is set");
     }
 
 }

@@ -1,12 +1,13 @@
 package net.vanfek.proxybans.core.permission;
 
-import com.velocitypowered.api.command.CommandSource;
-import com.velocitypowered.api.proxy.Player;
 import net.luckperms.api.LuckPerms;
+import net.luckperms.api.context.ContextManager;
+import net.luckperms.api.model.user.User;
+import net.luckperms.api.query.QueryOptions;
 import net.luckperms.api.util.Tristate;
+import net.vanfek.proxybans.api.platform.Actor;
 import org.jetbrains.annotations.NotNull;
 
-/** Goes through the player adapter, not the user manager, which returns {@code null} for uncached users. */
 public final class LuckPermsPermissionChecker implements PermissionChecker {
 
     private final LuckPerms luckPerms;
@@ -18,20 +19,33 @@ public final class LuckPermsPermissionChecker implements PermissionChecker {
     }
 
     @Override
-    public boolean hasPermission(@NotNull CommandSource source, @NotNull String node) {
-        if (!(source instanceof Player player)) {
-            return this.fallback.hasPermission(source, node);
+    public boolean hasPermission(@NotNull Actor actor, @NotNull String node) {
+        if (!actor.isPlayer()) {
+            return this.fallback.hasPermission(actor, node);
         }
 
-        Tristate state = this.luckPerms.getPlayerAdapter(Player.class)
-                .getPermissionData(player)
+        User user = this.luckPerms.getUserManager().getUser(actor.uuid());
+
+        // An uncached user answers UNDEFINED to everything; loading it here would block the caller, so ask the platform instead.
+        if (user == null) {
+            return this.fallback.hasPermission(actor, node);
+        }
+
+        Tristate state = user.getCachedData()
+                .getPermissionData(queryOptionsFor(user))
                 .checkPermission(node);
 
         return switch (state) {
             case TRUE -> true;
             case FALSE -> false;
-            case UNDEFINED -> this.fallback.hasPermission(source, node);
+            case UNDEFINED -> this.fallback.hasPermission(actor, node);
         };
+    }
+
+    private QueryOptions queryOptionsFor(User user) {
+        ContextManager contexts = this.luckPerms.getContextManager();
+
+        return contexts.getQueryOptions(user).orElseGet(contexts::getStaticQueryOptions);
     }
 
 }

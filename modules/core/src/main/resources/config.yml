@@ -1,4 +1,4 @@
-# ProxyBans — Velocity plugin configuration.
+# ProxyBans — plugin configuration, shared by the Velocity and the Paper module.
 # Durations use ISO-8601 notation: PT2S = 2 seconds, PT30M = 30 minutes.
 
 service:
@@ -22,6 +22,19 @@ login:
   # Report UUID <-> name to the service on login. Only useful in 'local' mode.
   remember-player: true
 
+# Paper module only: the proxy cannot intercept signed chat, so mutes are enforced on the backend server.
+chat:
+  # Cancel chat and the commands below for muted players.
+  enforce-mute: true
+  # Service unreachable and no usable cached answer: true lets the message through, false blocks it.
+  fail-open: true
+  # Commands that count as chat. A namespace prefix such as 'essentials:msg' is ignored when matching.
+  blocked-commands: ["msg", "tell", "w", "whisper", "r", "reply", "me", "say", "pm"]
+
 commands:
   # Register /ban, /tempban, /unban... as top-level commands in addition to /pb <subcommand>.
   register-top-level-aliases: true
+  # Paper module only. auto: register nothing when the server sits behind a BungeeCord or Velocity
+  # proxy, because the proxy owns the commands, and everything on a standalone server.
+  # always / never override the detection.
+  mode: auto

@@ -1,13 +1,13 @@
 package net.vanfek.proxybans.core.permission;
 
-import com.velocitypowered.api.command.CommandSource;
+import net.vanfek.proxybans.api.platform.Actor;
 import org.jetbrains.annotations.NotNull;
 
 public final class NativePermissionChecker implements PermissionChecker {
 
     @Override
-    public boolean hasPermission(@NotNull CommandSource source, @NotNull String node) {
-        return source.hasPermission(node);
+    public boolean hasPermission(@NotNull Actor actor, @NotNull String node) {
+        return actor.hasPermission(node);
     }
 
 }
