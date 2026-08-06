@@ -10,6 +10,7 @@ import net.vanfek.proxypunishments.core.cache.PunishmentCache;
 import net.vanfek.proxypunishments.core.client.PunishmentsClient;
 import net.vanfek.proxypunishments.core.client.PunishmentsHttpException;
 import net.vanfek.proxypunishments.core.config.PluginConfig;
+import net.vanfek.proxypunishments.core.metrics.PluginMetrics;
 import net.vanfek.proxypunishments.core.i18n.MessageBundle;
 import org.bukkit.entity.Player;
 import org.junit.jupiter.api.BeforeEach;
@@ -55,7 +56,10 @@ class ChatListenerTest {
 
         Clock clock = Clock.fixed(NOW, ZoneOffset.UTC);
 
-        this.punishments = new PunishmentServiceImpl(this.client, new PunishmentCache(new PluginConfig.Cache(), clock));
+        this.punishments = new PunishmentServiceImpl(
+                this.client, new PunishmentCache(new PluginConfig.Cache(), clock),
+                new PluginMetrics()
+        );
         this.messages = MessageBundle.load(directory);
         this.config = new PluginConfig.Chat();
 
@@ -83,7 +87,7 @@ class ChatListenerTest {
     void allowsChatWhenTheMuteHasExpired() {
         ActivePunishmentView expired = new ActivePunishmentView(
                 1L, PLAYER_UUID, "Steve",
-                PunishmentKind.MUTE, BanType.TEMPORARY,
+                PunishmentKind.MUTE, BanType.TEMPORARY, null,
                 UUID.randomUUID(), "Admin",
                 "spam", NOW.minus(Duration.ofDays(2)), NOW.minus(Duration.ofDays(1))
         );
@@ -180,7 +184,7 @@ class ChatListenerTest {
     private ActivePunishmentView permanentMute() {
         return new ActivePunishmentView(
                 1L, PLAYER_UUID, "Steve",
-                PunishmentKind.MUTE, BanType.PERMANENT,
+                PunishmentKind.MUTE, BanType.PERMANENT, null,
                 UUID.randomUUID(), "Admin",
                 "spam", NOW.minus(Duration.ofDays(1)), null
         );

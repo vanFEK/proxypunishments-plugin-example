@@ -25,6 +25,9 @@ public record PunishmentHistoryEntry(
         MUTE,
         PERMMUTE,
         UNMUTE,
+        IPBAN,
+        PERMIPBAN,
+        UNIPBAN,
         WARN
 
     }

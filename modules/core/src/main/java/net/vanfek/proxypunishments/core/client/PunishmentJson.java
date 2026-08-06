@@ -5,6 +5,7 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.google.gson.JsonSyntaxException;
 import net.vanfek.proxypunishments.api.ActivePunishmentView;
+import net.vanfek.proxypunishments.api.AltView;
 import net.vanfek.proxypunishments.api.BanType;
 import net.vanfek.proxypunishments.api.PunishmentHistoryEntry;
 import net.vanfek.proxypunishments.api.PunishmentKind;
@@ -55,8 +56,16 @@ final class PunishmentJson {
         return new ActivePunishmentView(
                 readLong(json, "id"), readUuid(json, "playerUuid"), readNullableString(json, "playerName"),
                 readEnum(json, "kind", PunishmentKind.class), readEnum(json, "type", BanType.class),
+                readNullableString(json, "ipAddress"),
                 readUuid(json, "issuedByUuid"), readString(json, "issuedByName"),
                 readString(json, "reason"), readInstant(json, "issuedAt"), readNullableInstant(json, "expiresAt")
+        );
+    }
+
+    static AltView parseAlt(JsonObject json) {
+        return new AltView(
+                readUuid(json, "uuid"), readString(json, "login"),
+                readInstant(json, "lastSeenAt"), readBoolean(json, "sharedIp")
         );
     }
 
@@ -82,6 +91,10 @@ final class PunishmentJson {
 
     private static @Nullable String readNullableString(JsonObject json, String field) {
         return isPresent(json, field) ? json.get(field).getAsString() : null;
+    }
+
+    private static boolean readBoolean(JsonObject json, String field) {
+        return isPresent(json, field) && json.get(field).getAsBoolean();
     }
 
     private static long readLong(JsonObject json, String field) {

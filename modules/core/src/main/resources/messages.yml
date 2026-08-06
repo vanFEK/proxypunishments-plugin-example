@@ -17,6 +17,18 @@ login:
     <gray>Кто выдал:</gray> <white><admin></white>
     <gray>Осталось:</gray> <yellow><remaining></yellow>
     <gray>Истекает:</gray> <yellow><expires_at></yellow>
+  kick-ip-permanent: |-
+    <red><bold>Ваш IP-адрес заблокирован навсегда</bold></red>
+
+    <gray>Причина:</gray> <white><reason></white>
+    <gray>Кто выдал:</gray> <white><admin></white>
+  kick-ip-temporary: |-
+    <red><bold>Ваш IP-адрес временно заблокирован</bold></red>
+
+    <gray>Причина:</gray> <white><reason></white>
+    <gray>Кто выдал:</gray> <white><admin></white>
+    <gray>Осталось:</gray> <yellow><remaining></yellow>
+    <gray>Истекает:</gray> <yellow><expires_at></yellow>
   service-unavailable: |-
     <red>Сервис блокировок недоступен.</red>
     <gray>Попробуйте зайти позже.</gray>
@@ -42,6 +54,18 @@ ban:
 
 unban:
   success: "<gray>[<gradient:#ff8a00:#e52e71>ProxyPunishments</gradient><gray>]</gray> <green>Блокировка с игрока <white><player></white> снята.</green> <gray>Причина:</gray> <white><reason></white>"
+
+ipban:
+  success-permanent: "<gray>[<gradient:#ff8a00:#e52e71>ProxyPunishments</gradient><gray>]</gray> <green>IP-адрес <white><address></white> заблокирован навсегда.</green> <gray>Причина:</gray> <white><reason></white>"
+  success-temporary: "<gray>[<gradient:#ff8a00:#e52e71>ProxyPunishments</gradient><gray>]</gray> <green>IP-адрес <white><address></white> заблокирован на <yellow><duration></yellow>.</green> <gray>Причина:</gray> <white><reason></white>"
+
+unipban:
+  success: "<gray>[<gradient:#ff8a00:#e52e71>ProxyPunishments</gradient><gray>]</gray> <green>Блокировка IP-адреса <white><address></white> снята.</green> <gray>Причина:</gray> <white><reason></white>"
+
+alts:
+  empty: "<gray>[<gradient:#ff8a00:#e52e71>ProxyPunishments</gradient><gray>]</gray> <gray>У игрока <white><player></white> нет других аккаунтов с этого адреса.</gray>"
+  header: "<gray>[<gradient:#ff8a00:#e52e71>ProxyPunishments</gradient><gray>]</gray> <gray>Аккаунты с того же адреса, что и <white><player></white>:</gray>"
+  entry: "<dark_gray>›</dark_gray> <white><alt></white> <dark_gray>—</dark_gray> <gray>был(а) в сети</gray> <yellow><last_seen></yellow>"
 
 mute:
   success-permanent: "<gray>[<gradient:#ff8a00:#e52e71>ProxyPunishments</gradient><gray>]</gray> <green>Игроку <white><player></white> навсегда запрещён чат.</green> <gray>Причина:</gray> <white><reason></white>"
@@ -101,6 +125,14 @@ list:
   entry-permanent: "<dark_gray>›</dark_gray> <white><player></white> <dark_gray>—</dark_gray> <red>навсегда</red> <dark_gray>—</dark_gray> <white><reason></white> <gray>(<admin>)</gray>"
   entry-temporary: "<dark_gray>›</dark_gray> <white><player></white> <dark_gray>—</dark_gray> <yellow><remaining></yellow> <dark_gray>—</dark_gray> <white><reason></white> <gray>(<admin>)</gray>"
 
+status:
+  header: "<gray>[<gradient:#ff8a00:#e52e71>ProxyPunishments</gradient><gray>]</gray> <gray>Состояние плагина:</gray>"
+  cache: "<dark_gray>›</dark_gray> <gray>Кеш:</gray> <white><entries></white> <gray>записей, попаданий</gray> <yellow><hit_ratio></yellow> <dark_gray>(<hits> / <misses>, устаревших ответов: <stale>)</dark_gray>"
+  service: "<dark_gray>›</dark_gray> <gray>Сервис:</gray> <white><calls></white> <gray>запросов, ошибок</gray> <white><failures></white><gray>, среднее</gray> <yellow><average></yellow><gray>, худшее</gray> <yellow><slowest></yellow>"
+  redis-off: "<dark_gray>›</dark_gray> <gray>Redis:</gray> <white>выключен</white> <dark_gray>(кеш живёт до истечения active-ttl)</dark_gray>"
+  redis-connected: "<dark_gray>›</dark_gray> <gray>Redis:</gray> <green>подключён</green><gray>, получено событий:</gray> <white><events></white>"
+  redis-disconnected: "<dark_gray>›</dark_gray> <gray>Redis:</gray> <red>нет соединения</red><gray>, получено событий:</gray> <white><events></white>"
+
 kick:
   not-online: "<gray>[<gradient:#ff8a00:#e52e71>ProxyPunishments</gradient><gray>]</gray> <red>Игрок <white><target></white> не в сети.</red>"
   player-reason: |-
@@ -119,9 +151,13 @@ root:
     <dark_gray>›</dark_gray> <white>/pp tempmute <player> <длительность> <причина></white>
     <dark_gray>›</dark_gray> <white>/pp unmute <player> [причина]</white>
     <dark_gray>›</dark_gray> <white>/pp warn <player> <причина></white>
+    <dark_gray>›</dark_gray> <white>/pp ipban <player|адрес> [длительность] <причина></white>
+    <dark_gray>›</dark_gray> <white>/pp unipban <player|адрес> [причина]</white>
+    <dark_gray>›</dark_gray> <white>/pp alts <player></white>
     <dark_gray>›</dark_gray> <white>/pp info <player> [ban|mute]</white>
     <dark_gray>›</dark_gray> <white>/pp history <player> [страница]</white>
     <dark_gray>›</dark_gray> <white>/pp list [ban|mute] [страница]</white>
+    <dark_gray>›</dark_gray> <white>/pp status</white>
     <gray>Длительность: <white>1d</white>, <white>2h30m</white>, <white>3M</white>, <white>perm</white></gray>
 
 errors:
@@ -132,6 +168,8 @@ errors:
   reason-required: "<gray>[<gradient:#ff8a00:#e52e71>ProxyPunishments</gradient><gray>]</gray> <red>Укажите причину блокировки.</red>"
   warn-reason-required: "<gray>[<gradient:#ff8a00:#e52e71>ProxyPunishments</gradient><gray>]</gray> <red>Укажите причину предупреждения.</red>"
   unknown-player: "<gray>[<gradient:#ff8a00:#e52e71>ProxyPunishments</gradient><gray>]</gray> <red>Игрок <white><player></white> неизвестен сервису.</red>"
+  unknown-address: "<gray>[<gradient:#ff8a00:#e52e71>ProxyPunishments</gradient><gray>]</gray> <red>Не удалось определить адрес для <white><target></white>.</red> <gray>Укажите IP-адрес явно или дождитесь, когда игрок будет в сети.</gray>"
+  bad-address: "<gray>[<gradient:#ff8a00:#e52e71>ProxyPunishments</gradient><gray>]</gray> <red>Неверный IP-адрес: <white><value></white></red> <gray>Примеры: 203.0.113.7, 2001:db8::1</gray>"
   service-down: "<gray>[<gradient:#ff8a00:#e52e71>ProxyPunishments</gradient><gray>]</gray> <red>Сервис блокировок недоступен. Подробности в консоли.</red>"
   service-status: "<gray>[<gradient:#ff8a00:#e52e71>ProxyPunishments</gradient><gray>]</gray> <red>Сервис блокировок ответил ошибкой <white><status></white>. Подробности в консоли.</red>"
   degraded: "<gray>[<gradient:#ff8a00:#e52e71>ProxyPunishments</gradient><gray>]</gray> <red>Плагин не смог загрузить конфигурацию и работает в аварийном режиме.</red>"

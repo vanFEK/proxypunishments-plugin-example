@@ -1,6 +1,7 @@
 package net.vanfek.proxypunishments.core.client;
 
 import net.vanfek.proxypunishments.api.ActivePunishmentView;
+import net.vanfek.proxypunishments.api.AltView;
 import net.vanfek.proxypunishments.api.PunishmentHistoryEntry;
 import net.vanfek.proxypunishments.api.PunishmentKind;
 import org.jetbrains.annotations.NotNull;
@@ -16,8 +17,16 @@ public interface PunishmentsClient extends AutoCloseable {
 
     @NotNull CompletableFuture<Optional<ActivePunishmentView>> findActive(@NotNull UUID playerUuid, @NotNull PunishmentKind kind);
 
+    @NotNull CompletableFuture<Optional<ActivePunishmentView>> findActiveIpBan(@NotNull String ipAddress);
+
     @NotNull CompletableFuture<ActivePunishmentView> issue(
             @NotNull UUID playerUuid, @NotNull PunishmentKind kind,
+            @NotNull UUID issuedByUuid, @NotNull String issuedByName,
+            @NotNull String reason, @Nullable Duration duration
+    );
+
+    @NotNull CompletableFuture<ActivePunishmentView> issueIpBan(
+            @NotNull String ipAddress, @NotNull UUID playerUuid,
             @NotNull UUID issuedByUuid, @NotNull String issuedByName,
             @NotNull String reason, @Nullable Duration duration
     );
@@ -25,6 +34,11 @@ public interface PunishmentsClient extends AutoCloseable {
     @NotNull CompletableFuture<Void> lift(
             @NotNull UUID playerUuid, @NotNull PunishmentKind kind,
             @NotNull UUID liftedByUuid, @NotNull String liftedByName, @NotNull String reason
+    );
+
+    @NotNull CompletableFuture<Void> liftIpBan(
+            @NotNull String ipAddress, @NotNull UUID liftedByUuid,
+            @NotNull String liftedByName, @NotNull String reason
     );
 
     @NotNull CompletableFuture<PunishmentHistoryEntry> warn(
@@ -36,9 +50,11 @@ public interface PunishmentsClient extends AutoCloseable {
 
     @NotNull CompletableFuture<List<PunishmentHistoryEntry>> history(@NotNull UUID playerUuid, int limit, int offset);
 
+    @NotNull CompletableFuture<List<AltView>> alts(@NotNull UUID playerUuid, int limit);
+
     @NotNull CompletableFuture<Optional<UUID>> lookup(@NotNull String login);
 
-    @NotNull CompletableFuture<Void> rememberPlayer(@NotNull UUID uuid, @NotNull String login);
+    @NotNull CompletableFuture<Void> rememberPlayer(@NotNull UUID uuid, @NotNull String login, @Nullable String ipAddress);
 
     @Override
     void close();

@@ -13,6 +13,10 @@ public final class PermissionNodes {
     public static final String HISTORY = "proxypunishments.command.history";
     public static final String LIST = "proxypunishments.command.list";
     public static final String KICK = "proxypunishments.command.kick";
+    public static final String IPBAN = "proxypunishments.command.ipban";
+    public static final String UNIPBAN = "proxypunishments.command.unipban";
+    public static final String ALTS = "proxypunishments.command.alts";
+    public static final String STATUS = "proxypunishments.command.status";
 
     public static final String ADMIN = "proxypunishments.admin";
 

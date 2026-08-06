@@ -10,6 +10,7 @@ public class PluginConfig {
 
     public Service service = new Service();
     public Cache cache = new Cache();
+    public Redis redis = new Redis();
     public Login login = new Login();
     public Chat chat = new Chat();
     public Commands commands = new Commands();
@@ -30,6 +31,23 @@ public class PluginConfig {
         public Duration activeTtl = Duration.ofSeconds(30);
         public Duration staleTtl = Duration.ofMinutes(30);
         public long maxSize = 100_000L;
+
+    }
+
+    @ConfigSerializable
+    public static class Redis {
+
+        // Off by default: with Redis unreachable, or off, the cache falls back to cache.active-ttl and nothing breaks.
+        public boolean enabled = false;
+
+        public String host = "redis";
+        public int port = 6379;
+        public String username = "";
+        public String password = "";
+        public int database = 0;
+        public String channel = "proxypunishments.invalidations";
+        public Duration connectTimeout = Duration.ofSeconds(2);
+        public Duration reconnectDelay = Duration.ofSeconds(5);
 
     }
 

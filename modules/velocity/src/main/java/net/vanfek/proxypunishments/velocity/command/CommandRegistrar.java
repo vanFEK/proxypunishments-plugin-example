@@ -4,6 +4,9 @@ import com.velocitypowered.api.command.BrigadierCommand;
 import com.velocitypowered.api.command.CommandManager;
 import com.velocitypowered.api.command.CommandMeta;
 import com.velocitypowered.api.proxy.ProxyServer;
+import net.vanfek.proxypunishments.velocity.command.ip.AltsCommand;
+import net.vanfek.proxypunishments.velocity.command.ip.IpBanCommand;
+import net.vanfek.proxypunishments.velocity.command.ip.UnIpBanCommand;
 import net.vanfek.proxypunishments.velocity.command.lookup.HistoryCommand;
 import net.vanfek.proxypunishments.velocity.command.lookup.InfoCommand;
 import net.vanfek.proxypunishments.velocity.command.lookup.ListCommand;
@@ -47,6 +50,7 @@ public final class CommandRegistrar {
         if (this.registerTopLevelAliases) {
             registerBans(plugin, manager);
             registerMutes(plugin, manager);
+            registerAddresses(plugin, manager);
             registerLookups(plugin, manager);
         }
     }
@@ -105,6 +109,26 @@ public final class CommandRegistrar {
                 plugin, manager,
                 literal -> WarnCommand.build(this.context, this.proxy, literal),
                 "warn", List.of("caution", "warnplayer")
+        );
+    }
+
+    private void registerAddresses(Object plugin, CommandManager manager) {
+        registerIfNameIsFree(
+                plugin, manager,
+                literal -> IpBanCommand.build(this.context, this.proxy, literal),
+                "ipban", List.of("banip", "ipblacklist")
+        );
+
+        registerIfNameIsFree(
+                plugin, manager,
+                literal -> UnIpBanCommand.build(this.context, this.proxy, literal),
+                "unipban", List.of("unbanip", "pardonip")
+        );
+
+        registerIfNameIsFree(
+                plugin, manager,
+                literal -> AltsCommand.build(this.context, this.proxy, literal),
+                "alts", List.of("accounts", "altaccounts")
         );
     }
 

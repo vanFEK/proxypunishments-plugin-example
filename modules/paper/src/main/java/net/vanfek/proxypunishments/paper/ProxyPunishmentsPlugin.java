@@ -8,6 +8,9 @@ import net.vanfek.proxypunishments.core.client.PunishmentsHttpClient;
 import net.vanfek.proxypunishments.core.config.ConfigLoader;
 import net.vanfek.proxypunishments.core.config.PluginConfig;
 import net.vanfek.proxypunishments.core.i18n.MessageBundle;
+import net.vanfek.proxypunishments.core.invalidation.RedisInvalidationSubscriber;
+import net.vanfek.proxypunishments.core.metrics.PluginMetrics;
+import net.vanfek.proxypunishments.core.metrics.StatusFormat;
 import net.vanfek.proxypunishments.core.permission.LuckPermsPermissionChecker;
 import net.vanfek.proxypunishments.core.permission.NativePermissionChecker;
 import net.vanfek.proxypunishments.core.permission.PermissionChecker;
@@ -28,6 +31,7 @@ public final class ProxyPunishmentsPlugin extends JavaPlugin {
 
     private Logger logger;
     private PunishmentServiceImpl punishments;
+    private RedisInvalidationSubscriber invalidations;
 
     @Override
     public void onEnable() {
@@ -44,10 +48,14 @@ public final class ProxyPunishmentsPlugin extends JavaPlugin {
             return;
         }
 
-        PunishmentsHttpClient httpClient = new PunishmentsHttpClient(config.service);
+        PluginMetrics metrics = new PluginMetrics();
+        PunishmentsHttpClient httpClient = new PunishmentsHttpClient(config.service, metrics);
         PunishmentCache cache = new PunishmentCache(config.cache, this.clock);
 
-        this.punishments = new PunishmentServiceImpl(httpClient, cache);
+        this.punishments = new PunishmentServiceImpl(httpClient, cache, metrics);
+        this.invalidations = new RedisInvalidationSubscriber(config.redis, this.punishments, metrics, this.logger);
+
+        this.invalidations.start();
 
         PermissionChecker permissions = resolvePermissionChecker();
 
@@ -62,9 +70,17 @@ public final class ProxyPunishmentsPlugin extends JavaPlugin {
 
     @Override
     public void onDisable() {
+        if (this.invalidations != null) {
+            this.invalidations.close();
+        }
+
         if (this.punishments == null) {
             return;
         }
+
+        this.logger.info("ProxyPunishments stopping — {}", StatusFormat.summary(
+                this.punishments.metrics().snapshot(), this.punishments.cachedEntries()
+        ));
 
         this.punishments.close();
     }

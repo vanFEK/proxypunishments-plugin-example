@@ -20,7 +20,7 @@ public final class PunishmentCache {
 
     private static final Duration EVICTION_GRACE = Duration.ofMinutes(1);
 
-    private final Cache<PunishmentKey, CachedPunishment> entries;
+    private final Cache<PunishmentCacheKey, CachedPunishment> entries;
     private final Duration activeTtl;
     private final Duration staleTtl;
     private final Clock clock;
@@ -39,6 +39,10 @@ public final class PunishmentCache {
         return Optional.ofNullable(this.entries.getIfPresent(PunishmentKey.of(uuid, kind)));
     }
 
+    public @NotNull Optional<CachedPunishment> peekIpBan(@NotNull String ipAddress) {
+        return Optional.ofNullable(this.entries.getIfPresent(IpBanKey.of(ipAddress)));
+    }
+
     public boolean isFresh(@NotNull CachedPunishment entry) {
         return age(entry).compareTo(this.activeTtl) <= 0;
     }
@@ -48,17 +52,15 @@ public final class PunishmentCache {
     }
 
     public void store(@NotNull UUID uuid, @NotNull PunishmentKind kind, @NotNull Optional<ActivePunishmentView> punishment) {
-        Instant now = this.clock.instant();
+        this.entries.put(PunishmentKey.of(uuid, kind), entry(punishment));
+    }
 
-        CachedPunishment entry = punishment
-                .map(view -> CachedPunishment.present(view, now))
-                .orElseGet(() -> CachedPunishment.absent(now));
-
-        this.entries.put(PunishmentKey.of(uuid, kind), entry);
+    public void storeIpBan(@NotNull String ipAddress, @NotNull Optional<ActivePunishmentView> punishment) {
+        this.entries.put(IpBanKey.of(ipAddress), entry(punishment));
     }
 
     public void invalidate(@NotNull UUID uuid) {
-        List<PunishmentKey> keys = new ArrayList<>(PunishmentKind.values().length);
+        List<PunishmentCacheKey> keys = new ArrayList<>(PunishmentKind.values().length);
 
         for (PunishmentKind kind : PunishmentKind.values()) {
             keys.add(PunishmentKey.of(uuid, kind));
@@ -71,12 +73,24 @@ public final class PunishmentCache {
         this.entries.invalidate(PunishmentKey.of(uuid, kind));
     }
 
+    public void invalidateIpBan(@NotNull String ipAddress) {
+        this.entries.invalidate(IpBanKey.of(ipAddress));
+    }
+
     public void invalidateAll() {
         this.entries.invalidateAll();
     }
 
     public long size() {
         return this.entries.estimatedSize();
+    }
+
+    private CachedPunishment entry(Optional<ActivePunishmentView> punishment) {
+        Instant now = this.clock.instant();
+
+        return punishment
+                .map(view -> CachedPunishment.present(view, now))
+                .orElseGet(() -> CachedPunishment.absent(now));
     }
 
     private Duration age(CachedPunishment entry) {

@@ -33,6 +33,10 @@ tasks.shadowJar {
 
     mergeServiceFiles()
 
+    // Other plugins bundle Jedis too; relocating keeps two copies from fighting over the same classes.
+    relocate("redis.clients", "net.vanfek.proxypunishments.libs.redis")
+    relocate("org.apache.commons.pool2", "net.vanfek.proxypunishments.libs.pool2")
+
     minimize {
         exclude(dependency("org.spongepowered:configurate-yaml:.*"))
         exclude(dependency("com.github.ben-manes.caffeine:caffeine:.*"))

@@ -2,9 +2,11 @@ package net.vanfek.proxypunishments.core.client;
 
 import com.google.gson.JsonObject;
 import net.vanfek.proxypunishments.api.ActivePunishmentView;
+import net.vanfek.proxypunishments.api.AltView;
 import net.vanfek.proxypunishments.api.PunishmentHistoryEntry;
 import net.vanfek.proxypunishments.api.PunishmentKind;
 import net.vanfek.proxypunishments.core.config.PluginConfig;
+import net.vanfek.proxypunishments.core.metrics.PluginMetrics;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -25,6 +27,8 @@ import java.util.function.Function;
 public final class PunishmentsHttpClient implements PunishmentsClient {
 
     private static final String PUNISHMENTS = "/api/v1/punishments";
+    private static final String IP_PUNISHMENTS = "/api/v1/punishments/ip";
+    private static final String PLAYERS = "/api/v1/players";
     private static final String WARNINGS = "/api/v1/warnings";
     private static final String SERVICE_TOKEN_HEADER = "X-Service-Token";
     private static final String CONTENT_TYPE = "application/json; charset=utf-8";
@@ -34,8 +38,9 @@ public final class PunishmentsHttpClient implements PunishmentsClient {
     private final String baseUrl;
     private final String token;
     private final Duration requestTimeout;
+    private final PluginMetrics metrics;
 
-    public PunishmentsHttpClient(@NotNull PluginConfig.Service config) {
+    public PunishmentsHttpClient(@NotNull PluginConfig.Service config, @NotNull PluginMetrics metrics) {
         this.http = HttpClient.newBuilder()
                 .connectTimeout(config.connectTimeout)
                 .version(HttpClient.Version.HTTP_1_1)
@@ -43,6 +48,7 @@ public final class PunishmentsHttpClient implements PunishmentsClient {
         this.baseUrl = stripTrailingSlash(config.baseUrl);
         this.token = config.token;
         this.requestTimeout = config.requestTimeout;
+        this.metrics = metrics;
     }
 
     @Override
@@ -61,21 +67,50 @@ public final class PunishmentsHttpClient implements PunishmentsClient {
     }
 
     @Override
+    public @NotNull CompletableFuture<Optional<ActivePunishmentView>> findActiveIpBan(@NotNull String ipAddress) {
+        String path = IP_PUNISHMENTS + "/" + ipAddress + "/active";
+
+        return get(path, response -> {
+            if (response.statusCode() == NOT_FOUND) {
+                return Optional.empty();
+            }
+
+            requireSuccess(response);
+
+            return Optional.of(PunishmentJson.parseActivePunishment(PunishmentJson.parseObject(response.body())));
+        });
+    }
+
+    @Override
     public @NotNull CompletableFuture<ActivePunishmentView> issue(
             @NotNull UUID playerUuid, @NotNull PunishmentKind kind,
             @NotNull UUID issuedByUuid, @NotNull String issuedByName,
             @NotNull String reason, @Nullable Duration duration
     ) {
-        JsonObject payload = new JsonObject();
-        payload.addProperty("playerUuid", playerUuid.toString());
-        payload.addProperty("kind", kind.name());
-        payload.addProperty("issuedByUuid", issuedByUuid.toString());
-        payload.addProperty("issuedByName", issuedByName);
-        payload.addProperty("reason", reason);
+        JsonObject payload = issuePayload(playerUuid, kind, issuedByUuid, issuedByName, reason, duration);
 
-        if (duration != null) {
-            payload.addProperty("durationSeconds", duration.toSeconds());
-        }
+        return send(
+                PUNISHMENTS, builder -> builder.POST(body(payload)).header("Content-Type", CONTENT_TYPE),
+                response -> {
+                    requireSuccess(response);
+
+                    return PunishmentJson.parseActivePunishment(PunishmentJson.parseObject(response.body()));
+                }
+        );
+    }
+
+    @Override
+    public @NotNull CompletableFuture<ActivePunishmentView> issueIpBan(
+            @NotNull String ipAddress, @NotNull UUID playerUuid,
+            @NotNull UUID issuedByUuid, @NotNull String issuedByName,
+            @NotNull String reason, @Nullable Duration duration
+    ) {
+        JsonObject payload = issuePayload(
+                playerUuid, PunishmentKind.IP_BAN,
+                issuedByUuid, issuedByName, reason, duration
+        );
+
+        payload.addProperty("ipAddress", ipAddress);
 
         return send(
                 PUNISHMENTS, builder -> builder.POST(body(payload)).header("Content-Type", CONTENT_TYPE),
@@ -92,15 +127,31 @@ public final class PunishmentsHttpClient implements PunishmentsClient {
             @NotNull UUID playerUuid, @NotNull PunishmentKind kind,
             @NotNull UUID liftedByUuid, @NotNull String liftedByName, @NotNull String reason
     ) {
-        JsonObject payload = new JsonObject();
-        payload.addProperty("liftedByUuid", liftedByUuid.toString());
-        payload.addProperty("liftedByName", liftedByName);
-        payload.addProperty("reason", reason);
-
         String path = PUNISHMENTS + "/" + playerUuid + "?" + query("kind", kind);
 
         return send(
-                path, builder -> builder.method("DELETE", body(payload)).header("Content-Type", CONTENT_TYPE),
+                path,
+                builder -> builder
+                        .method("DELETE", body(liftPayload(liftedByUuid, liftedByName, reason)))
+                        .header("Content-Type", CONTENT_TYPE),
+                response -> {
+                    requireSuccess(response);
+
+                    return null;
+                }
+        );
+    }
+
+    @Override
+    public @NotNull CompletableFuture<Void> liftIpBan(
+            @NotNull String ipAddress, @NotNull UUID liftedByUuid,
+            @NotNull String liftedByName, @NotNull String reason
+    ) {
+        return send(
+                IP_PUNISHMENTS + "/" + ipAddress,
+                builder -> builder
+                        .method("DELETE", body(liftPayload(liftedByUuid, liftedByName, reason)))
+                        .header("Content-Type", CONTENT_TYPE),
                 response -> {
                     requireSuccess(response);
 
@@ -157,6 +208,21 @@ public final class PunishmentsHttpClient implements PunishmentsClient {
     }
 
     @Override
+    public @NotNull CompletableFuture<List<AltView>> alts(@NotNull UUID playerUuid, int limit) {
+        String path = PLAYERS + "/" + playerUuid + "/alts?" + query("limit", limit);
+
+        return get(path, response -> {
+            if (response.statusCode() == NOT_FOUND) {
+                return List.of();
+            }
+
+            requireSuccess(response);
+
+            return PunishmentJson.parseArray(response.body(), PunishmentJson::parseAlt);
+        });
+    }
+
+    @Override
     public @NotNull CompletableFuture<Optional<UUID>> lookup(@NotNull String login) {
         String path = "/api/v1/lookup?" + query("name", login);
 
@@ -172,10 +238,14 @@ public final class PunishmentsHttpClient implements PunishmentsClient {
     }
 
     @Override
-    public @NotNull CompletableFuture<Void> rememberPlayer(@NotNull UUID uuid, @NotNull String login) {
+    public @NotNull CompletableFuture<Void> rememberPlayer(@NotNull UUID uuid, @NotNull String login, @Nullable String ipAddress) {
         JsonObject payload = new JsonObject();
         payload.addProperty("uuid", uuid.toString());
         payload.addProperty("login", login);
+
+        if (ipAddress != null) {
+            payload.addProperty("ip", ipAddress);
+        }
 
         return send(
                 "/api/v1/known-players", builder -> builder.POST(body(payload)).header("Content-Type", CONTENT_TYPE),
@@ -190,6 +260,34 @@ public final class PunishmentsHttpClient implements PunishmentsClient {
     @Override
     public void close() {
         this.http.close();
+    }
+
+    private static JsonObject issuePayload(
+            UUID playerUuid, PunishmentKind kind,
+            UUID issuedByUuid, String issuedByName,
+            String reason, Duration duration
+    ) {
+        JsonObject payload = new JsonObject();
+        payload.addProperty("playerUuid", playerUuid.toString());
+        payload.addProperty("kind", kind.name());
+        payload.addProperty("issuedByUuid", issuedByUuid.toString());
+        payload.addProperty("issuedByName", issuedByName);
+        payload.addProperty("reason", reason);
+
+        if (duration != null) {
+            payload.addProperty("durationSeconds", duration.toSeconds());
+        }
+
+        return payload;
+    }
+
+    private static JsonObject liftPayload(UUID liftedByUuid, String liftedByName, String reason) {
+        JsonObject payload = new JsonObject();
+        payload.addProperty("liftedByUuid", liftedByUuid.toString());
+        payload.addProperty("liftedByName", liftedByName);
+        payload.addProperty("reason", reason);
+
+        return payload;
     }
 
     private <T> CompletableFuture<T> get(String path, Function<HttpResponse<String>, T> mapper) {
@@ -208,8 +306,12 @@ public final class PunishmentsHttpClient implements PunishmentsClient {
             return CompletableFuture.failedFuture(new PunishmentsHttpException("Could not build request for " + path, ex));
         }
 
+        long startedAt = System.nanoTime();
+
         return this.http.sendAsync(request, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8))
                 .handle((response, throwable) -> {
+                    this.metrics.serviceCall(System.nanoTime() - startedAt, throwable != null);
+
                     if (throwable != null) {
                         throw new PunishmentsHttpException("HTTP request to proxypunishments-service failed", throwable);
                     }

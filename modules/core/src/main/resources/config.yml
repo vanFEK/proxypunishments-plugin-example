@@ -16,6 +16,22 @@ cache:
   stale-ttl: PT30M
   max-size: 100000
 
+# Optional: drop a cached answer the moment the service says it changed, instead of waiting out
+# cache.active-ttl. Off by default; with Redis off or unreachable everything behaves as it did
+# before, the plugin keeps serving from its own cache and reconnects in the background.
+redis:
+  enabled: false
+  host: "redis"
+  port: 6379
+  username: ""
+  password: ""
+  database: 0
+  # Must match proxypunishments.redis.channel on the service.
+  channel: "proxypunishments.invalidations"
+  connect-timeout: PT2S
+  # How long to wait before reconnecting after the subscription drops.
+  reconnect-delay: PT5S
+
 login:
   # Service unreachable and no usable cached answer: true lets the player in, false rejects them.
   fail-open: true

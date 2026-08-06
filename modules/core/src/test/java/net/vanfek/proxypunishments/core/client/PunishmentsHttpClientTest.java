@@ -3,9 +3,11 @@ package net.vanfek.proxypunishments.core.client;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpServer;
 import net.vanfek.proxypunishments.api.ActivePunishmentView;
+import net.vanfek.proxypunishments.api.AltView;
 import net.vanfek.proxypunishments.api.PunishmentHistoryEntry;
 import net.vanfek.proxypunishments.api.PunishmentKind;
 import net.vanfek.proxypunishments.core.config.PluginConfig;
+import net.vanfek.proxypunishments.core.metrics.PluginMetrics;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -29,6 +31,7 @@ class PunishmentsHttpClientTest {
 
     private static final UUID PLAYER = UUID.fromString("11111111-2222-3333-4444-555555555555");
     private static final UUID ADMIN = UUID.fromString("00000000-0000-0000-0000-000000000000");
+    private static final String ADDRESS = "203.0.113.7";
 
     private HttpServer server;
     private PunishmentsHttpClient client;
@@ -49,7 +52,7 @@ class PunishmentsHttpClientTest {
         config.connectTimeout = Duration.ofSeconds(2);
         config.requestTimeout = Duration.ofSeconds(5);
 
-        this.client = new PunishmentsHttpClient(config);
+        this.client = new PunishmentsHttpClient(config, new PluginMetrics());
     }
 
     @AfterEach
@@ -207,6 +210,76 @@ class PunishmentsHttpClientTest {
     }
 
     @Test
+    @DisplayName("IP bans use the contract's address endpoints and carry the address in the body")
+    void speaksTheIpBanEndpoints() throws Exception {
+        this.status = 200;
+        this.body = ipBan();
+
+        Optional<ActivePunishmentView> active = this.client.findActiveIpBan(ADDRESS).get();
+
+        assertThat(active).isPresent();
+        assertThat(active.orElseThrow().isIpBan()).isTrue();
+        assertThat(active.orElseThrow().address()).contains(ADDRESS);
+        assertThat(this.requests.getFirst().uri()).isEqualTo("/api/v1/punishments/ip/" + ADDRESS + "/active");
+
+        this.status = 201;
+
+        this.client.issueIpBan(ADDRESS, PLAYER, ADMIN, "Admin", "ban evasion", Duration.ofHours(1)).get();
+
+        RecordedRequest issued = this.requests.getLast();
+
+        assertThat(issued.method()).isEqualTo("POST");
+        assertThat(issued.uri()).isEqualTo("/api/v1/punishments");
+        assertThat(issued.body()).contains("\"kind\":\"IP_BAN\"");
+        assertThat(issued.body()).contains("\"ipAddress\":\"" + ADDRESS + "\"");
+
+        this.status = 204;
+        this.body = "";
+
+        this.client.liftIpBan(ADDRESS, ADMIN, "Admin", "appeal accepted").get();
+
+        RecordedRequest lifted = this.requests.getLast();
+
+        assertThat(lifted.method()).isEqualTo("DELETE");
+        assertThat(lifted.uri()).isEqualTo("/api/v1/punishments/ip/" + ADDRESS);
+        assertThat(lifted.body()).contains("\"liftedByName\":\"Admin\"");
+    }
+
+    @Test
+    @DisplayName("alts come back from the players endpoint, newest first, with the shared-address flag")
+    void readsAltsThroughTheContractEndpoint() throws Exception {
+        this.status = 200;
+        this.body = """
+                {"data": [
+                  {"uuid": "22222222-3333-4444-5555-666666666666", "login": "Alex",
+                   "lastSeenAt": "2026-01-01T00:00:00Z", "sharedIp": true}
+                ]}
+                """;
+
+        List<AltView> alts = this.client.alts(PLAYER, 20).get();
+
+        assertThat(alts).singleElement().extracting(AltView::login).isEqualTo("Alex");
+        assertThat(alts.getFirst().sharedIp()).isTrue();
+        assertThat(this.requests.getFirst().uri()).isEqualTo("/api/v1/players/" + PLAYER + "/alts?limit=20");
+    }
+
+    @Test
+    @DisplayName("the remember call carries the address next to the name, and omits it when there is none")
+    void remembersThePlayerAddress() throws Exception {
+        this.status = 204;
+        this.body = "";
+
+        this.client.rememberPlayer(PLAYER, "Steve", ADDRESS).get();
+
+        assertThat(this.requests.getFirst().uri()).isEqualTo("/api/v1/known-players");
+        assertThat(this.requests.getFirst().body()).contains("\"ip\":\"" + ADDRESS + "\"");
+
+        this.client.rememberPlayer(PLAYER, "Steve", null).get();
+
+        assertThat(this.requests.getLast().body()).doesNotContain("\"ip\"");
+    }
+
+    @Test
     @DisplayName("an unreachable host fails the future rather than throwing on the calling thread")
     void reportsConnectionFailuresThroughTheFuture() {
         PluginConfig.Service config = new PluginConfig.Service();
@@ -215,11 +288,28 @@ class PunishmentsHttpClientTest {
         config.connectTimeout = Duration.ofMillis(200);
         config.requestTimeout = Duration.ofMillis(500);
 
-        try (PunishmentsHttpClient unreachable = new PunishmentsHttpClient(config)) {
+        try (PunishmentsHttpClient unreachable = new PunishmentsHttpClient(config, new PluginMetrics())) {
             assertThatThrownBy(() -> unreachable.findActive(PLAYER, PunishmentKind.BAN).get())
                     .isInstanceOf(ExecutionException.class)
                     .hasCauseInstanceOf(PunishmentsHttpException.class);
         }
+    }
+
+    private static String ipBan() {
+        return """
+                {
+                  "id": 9,
+                  "playerUuid": "11111111-2222-3333-4444-555555555555",
+                  "kind": "IP_BAN",
+                  "ipAddress": "203.0.113.7",
+                  "issuedByUuid": "00000000-0000-0000-0000-000000000000",
+                  "issuedByName": "Console",
+                  "reason": "ban evasion",
+                  "issuedAt": "2026-01-01T00:00:00Z",
+                  "expiresAt": null,
+                  "type": "PERMANENT"
+                }
+                """;
     }
 
     private static String activePunishment(String kind, String type) {

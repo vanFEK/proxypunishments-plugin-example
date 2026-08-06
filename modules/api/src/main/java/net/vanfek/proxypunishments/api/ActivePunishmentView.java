@@ -9,7 +9,7 @@ import java.util.UUID;
 
 public record ActivePunishmentView(
         long id, @NotNull UUID playerUuid, @Nullable String playerName,
-        @NotNull PunishmentKind kind, @NotNull BanType type,
+        @NotNull PunishmentKind kind, @NotNull BanType type, @Nullable String ipAddress,
         @NotNull UUID issuedByUuid, @NotNull String issuedByName,
         @NotNull String reason, @NotNull Instant issuedAt, @Nullable Instant expiresAt
 ) {
@@ -26,6 +26,10 @@ public record ActivePunishmentView(
         return this.kind == PunishmentKind.MUTE;
     }
 
+    public boolean isIpBan() {
+        return this.kind == PunishmentKind.IP_BAN;
+    }
+
     public boolean isExpired(@NotNull Instant now) {
         return this.expiresAt != null && now.isAfter(this.expiresAt);
     }
@@ -38,6 +42,10 @@ public record ActivePunishmentView(
 
     public @NotNull Optional<Instant> expiry() {
         return Optional.ofNullable(this.expiresAt);
+    }
+
+    public @NotNull Optional<String> address() {
+        return Optional.ofNullable(this.ipAddress);
     }
 
 }

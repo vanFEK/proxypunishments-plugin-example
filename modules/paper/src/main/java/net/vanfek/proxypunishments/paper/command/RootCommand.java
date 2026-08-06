@@ -5,9 +5,13 @@ import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.tree.LiteralCommandNode;
 import io.papermc.paper.command.brigadier.CommandSourceStack;
 import io.papermc.paper.command.brigadier.Commands;
+import net.vanfek.proxypunishments.paper.command.ip.AltsCommand;
+import net.vanfek.proxypunishments.paper.command.ip.IpBanCommand;
+import net.vanfek.proxypunishments.paper.command.ip.UnIpBanCommand;
 import net.vanfek.proxypunishments.paper.command.lookup.HistoryCommand;
 import net.vanfek.proxypunishments.paper.command.lookup.InfoCommand;
 import net.vanfek.proxypunishments.paper.command.lookup.ListCommand;
+import net.vanfek.proxypunishments.paper.command.lookup.StatusCommand;
 import net.vanfek.proxypunishments.paper.command.mute.MuteCommand;
 import net.vanfek.proxypunishments.paper.command.mute.TempMuteCommand;
 import net.vanfek.proxypunishments.paper.command.mute.UnmuteCommand;
@@ -46,9 +50,13 @@ public final class RootCommand {
         addFreshSubcommands(root, literal -> TempMuteCommand.build(ctx, server, literal), "tempmute", "tmute");
         addFreshSubcommands(root, literal -> UnmuteCommand.build(ctx, literal), "unmute", "unsilence");
         addFreshSubcommands(root, literal -> WarnCommand.build(ctx, server, literal), "warn", "caution");
+        addFreshSubcommands(root, literal -> IpBanCommand.build(ctx, server, literal), "ipban", "banip");
+        addFreshSubcommands(root, literal -> UnIpBanCommand.build(ctx, server, literal), "unipban", "unbanip");
+        addFreshSubcommands(root, literal -> AltsCommand.build(ctx, server, literal), "alts", "accounts");
         addFreshSubcommands(root, literal -> InfoCommand.build(ctx, server, literal), "info", "check");
         addFreshSubcommands(root, literal -> HistoryCommand.build(ctx, server, literal), "history", "log");
         addFreshSubcommands(root, literal -> ListCommand.build(ctx, literal), "list", "bans");
+        addFreshSubcommands(root, literal -> StatusCommand.build(ctx, literal), "status", "stats");
 
         root.then(KickCommand.build(ctx, server));
 

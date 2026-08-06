@@ -5,6 +5,9 @@ import io.papermc.paper.command.brigadier.CommandSourceStack;
 import io.papermc.paper.command.brigadier.Commands;
 import io.papermc.paper.plugin.lifecycle.event.LifecycleEventManager;
 import io.papermc.paper.plugin.lifecycle.event.types.LifecycleEvents;
+import net.vanfek.proxypunishments.paper.command.ip.AltsCommand;
+import net.vanfek.proxypunishments.paper.command.ip.IpBanCommand;
+import net.vanfek.proxypunishments.paper.command.ip.UnIpBanCommand;
 import net.vanfek.proxypunishments.paper.command.lookup.HistoryCommand;
 import net.vanfek.proxypunishments.paper.command.lookup.InfoCommand;
 import net.vanfek.proxypunishments.paper.command.lookup.ListCommand;
@@ -54,6 +57,7 @@ public final class CommandRegistrar {
         if (this.registerTopLevelAliases) {
             registerBans(commands);
             registerMutes(commands);
+            registerAddresses(commands);
             registerLookups(commands);
         }
     }
@@ -98,6 +102,23 @@ public final class CommandRegistrar {
         registerIfNameIsFree(
                 commands, literal -> WarnCommand.build(this.context, this.server, literal),
                 "warn", List.of("caution", "warnplayer")
+        );
+    }
+
+    private void registerAddresses(Commands commands) {
+        registerIfNameIsFree(
+                commands, literal -> IpBanCommand.build(this.context, this.server, literal),
+                "ipban", List.of("banip", "ipblacklist")
+        );
+
+        registerIfNameIsFree(
+                commands, literal -> UnIpBanCommand.build(this.context, this.server, literal),
+                "unipban", List.of("unbanip", "pardonip")
+        );
+
+        registerIfNameIsFree(
+                commands, literal -> AltsCommand.build(this.context, this.server, literal),
+                "alts", List.of("accounts", "altaccounts")
         );
     }
 

@@ -14,6 +14,7 @@ import net.vanfek.proxypunishments.core.PunishmentServiceImpl;
 import net.vanfek.proxypunishments.core.cache.PunishmentCache;
 import net.vanfek.proxypunishments.core.client.PunishmentsClient;
 import net.vanfek.proxypunishments.core.config.PluginConfig;
+import net.vanfek.proxypunishments.core.metrics.PluginMetrics;
 import net.vanfek.proxypunishments.core.i18n.MessageBundle;
 import net.vanfek.proxypunishments.core.permission.NativePermissionChecker;
 import net.vanfek.proxypunishments.velocity.command.support.CommandContext;
@@ -63,7 +64,7 @@ class MuteCommandTest {
 
         Clock clock = Clock.fixed(NOW, ZoneOffset.UTC);
         PunishmentCache cache = new PunishmentCache(new PluginConfig.Cache(), clock);
-        PunishmentServiceImpl punishments = new PunishmentServiceImpl(this.client, cache);
+        PunishmentServiceImpl punishments = new PunishmentServiceImpl(this.client, cache, new PluginMetrics());
 
         CommandContext ctx = new CommandContext(punishments, this.messages, new NativePermissionChecker(), clock, LOGGER);
         ProxyServer proxy = mock(ProxyServer.class);
@@ -153,7 +154,7 @@ class MuteCommandTest {
     private static ActivePunishmentView temporaryMute() {
         return new ActivePunishmentView(
                 1L, PLAYER_UUID, "Steve",
-                PunishmentKind.MUTE, BanType.TEMPORARY,
+                PunishmentKind.MUTE, BanType.TEMPORARY, null,
                 UUID.randomUUID(), "Console",
                 "spam", NOW, NOW.plus(Duration.ofDays(7))
         );

@@ -5,9 +5,13 @@ import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.velocitypowered.api.command.BrigadierCommand;
 import com.velocitypowered.api.command.CommandSource;
 import com.velocitypowered.api.proxy.ProxyServer;
+import net.vanfek.proxypunishments.velocity.command.ip.AltsCommand;
+import net.vanfek.proxypunishments.velocity.command.ip.IpBanCommand;
+import net.vanfek.proxypunishments.velocity.command.ip.UnIpBanCommand;
 import net.vanfek.proxypunishments.velocity.command.lookup.HistoryCommand;
 import net.vanfek.proxypunishments.velocity.command.lookup.InfoCommand;
 import net.vanfek.proxypunishments.velocity.command.lookup.ListCommand;
+import net.vanfek.proxypunishments.velocity.command.lookup.StatusCommand;
 import net.vanfek.proxypunishments.velocity.command.mute.MuteCommand;
 import net.vanfek.proxypunishments.velocity.command.mute.TempMuteCommand;
 import net.vanfek.proxypunishments.velocity.command.mute.UnmuteCommand;
@@ -45,9 +49,13 @@ public final class RootCommand {
         addFreshSubcommands(root, literal -> TempMuteCommand.build(ctx, proxy, literal), "tempmute", "tmute");
         addFreshSubcommands(root, literal -> UnmuteCommand.build(ctx, literal), "unmute", "unsilence");
         addFreshSubcommands(root, literal -> WarnCommand.build(ctx, proxy, literal), "warn", "caution");
+        addFreshSubcommands(root, literal -> IpBanCommand.build(ctx, proxy, literal), "ipban", "banip");
+        addFreshSubcommands(root, literal -> UnIpBanCommand.build(ctx, proxy, literal), "unipban", "unbanip");
+        addFreshSubcommands(root, literal -> AltsCommand.build(ctx, proxy, literal), "alts", "accounts");
         addFreshSubcommands(root, literal -> InfoCommand.build(ctx, proxy, literal), "info", "check");
         addFreshSubcommands(root, literal -> HistoryCommand.build(ctx, proxy, literal), "history", "log");
         addFreshSubcommands(root, literal -> ListCommand.build(ctx, literal), "list", "bans");
+        addFreshSubcommands(root, literal -> StatusCommand.build(ctx, literal), "status", "stats");
 
         root.then(KickCommand.build(ctx, proxy).getNode());
 

@@ -19,6 +19,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 class PunishmentCacheTest {
 
     private static final UUID PLAYER = UUID.fromString("11111111-2222-3333-4444-555555555555");
+    private static final String ADDRESS = "203.0.113.7";
+    private static final String OTHER_ADDRESS = "198.51.100.9";
 
     private MutableClock clock;
     private PunishmentCache cache;
@@ -136,10 +138,77 @@ class PunishmentCacheTest {
         assertThat(this.cache.peek(PLAYER, PunishmentKind.MUTE)).isEmpty();
     }
 
+    @Test
+    @DisplayName("an address lookup is never answered from a player entry, nor the other way round")
+    void addressAndPlayerEntriesDoNotCross() {
+        this.cache.store(PLAYER, PunishmentKind.BAN, Optional.of(punishment(PunishmentKind.BAN)));
+        this.cache.storeIpBan(ADDRESS, Optional.of(ipBan()));
+
+        assertThat(this.cache.peekIpBan(ADDRESS).orElseThrow().asOptional())
+                .get()
+                .extracting(ActivePunishmentView::kind)
+                .isEqualTo(PunishmentKind.IP_BAN);
+        assertThat(this.cache.peek(PLAYER, PunishmentKind.BAN).orElseThrow().asOptional())
+                .get()
+                .extracting(ActivePunishmentView::kind)
+                .isEqualTo(PunishmentKind.BAN);
+        assertThat(this.cache.peek(PLAYER, PunishmentKind.IP_BAN)).isEmpty();
+    }
+
+    @Test
+    @DisplayName("one banned address says nothing about another")
+    void addressEntriesAreKeyedByAddress() {
+        this.cache.storeIpBan(ADDRESS, Optional.of(ipBan()));
+
+        assertThat(this.cache.peekIpBan(OTHER_ADDRESS)).isEmpty();
+        assertThat(this.cache.peekIpBan(ADDRESS)).isPresent();
+    }
+
+    @Test
+    @DisplayName("\"not IP banned\" is cached too, and ages exactly like a player entry")
+    void cachesAbsentIpBans() {
+        this.cache.storeIpBan(ADDRESS, Optional.empty());
+
+        CachedPunishment entry = this.cache.peekIpBan(ADDRESS).orElseThrow();
+
+        assertThat(entry.asOptional()).isEmpty();
+        assertThat(this.cache.isFresh(entry)).isTrue();
+
+        this.clock.advance(Duration.ofMinutes(5));
+
+        assertThat(this.cache.isFresh(this.cache.peekIpBan(ADDRESS).orElseThrow())).isFalse();
+        assertThat(this.cache.isUsableStale(this.cache.peekIpBan(ADDRESS).orElseThrow())).isTrue();
+    }
+
+    @Test
+    @DisplayName("invalidating a player leaves the address entry alone")
+    void invalidatingAPlayerKeepsTheAddressEntry() {
+        this.cache.store(PLAYER, PunishmentKind.BAN, Optional.of(punishment(PunishmentKind.BAN)));
+        this.cache.storeIpBan(ADDRESS, Optional.of(ipBan()));
+
+        this.cache.invalidate(PLAYER);
+
+        assertThat(this.cache.peek(PLAYER, PunishmentKind.BAN)).isEmpty();
+        assertThat(this.cache.peekIpBan(ADDRESS)).isPresent();
+
+        this.cache.invalidateIpBan(ADDRESS);
+
+        assertThat(this.cache.peekIpBan(ADDRESS)).isEmpty();
+    }
+
+    private ActivePunishmentView ipBan() {
+        return new ActivePunishmentView(
+                2L, PLAYER, "Steve",
+                PunishmentKind.IP_BAN, BanType.PERMANENT, ADDRESS,
+                UUID.randomUUID(), "Admin",
+                "ban evasion", this.clock.instant(), null
+        );
+    }
+
     private ActivePunishmentView punishment(PunishmentKind kind) {
         return new ActivePunishmentView(
                 1L, PLAYER, "Steve",
-                kind, BanType.PERMANENT,
+                kind, BanType.PERMANENT, null,
                 UUID.randomUUID(), "Admin",
                 "griefing", this.clock.instant(), null
         );

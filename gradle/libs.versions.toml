@@ -6,6 +6,8 @@ gson = "2.11.0"
 annotations = "26.0.2"
 caffeine = "3.2.0"
 configurate = "4.2.0"
+jedis = "7.5.3"
+slf4j = "2.0.17"
 adventure = "4.18.0"
 junit = "5.11.4"
 assertj = "3.27.0"
@@ -22,6 +24,8 @@ gson = { module = "com.google.code.gson:gson", version.ref = "gson" }
 annotations = { module = "org.jetbrains:annotations", version.ref = "annotations" }
 caffeine = { module = "com.github.ben-manes.caffeine:caffeine", version.ref = "caffeine" }
 configurate-yaml = { module = "org.spongepowered:configurate-yaml", version.ref = "configurate" }
+jedis = { module = "redis.clients:jedis", version.ref = "jedis" }
+slf4j-api = { module = "org.slf4j:slf4j-api", version.ref = "slf4j" }
 adventure-api = { module = "net.kyori:adventure-api", version.ref = "adventure" }
 adventure-minimessage = { module = "net.kyori:adventure-text-minimessage", version.ref = "adventure" }
 adventure-plain = { module = "net.kyori:adventure-text-serializer-plain", version.ref = "adventure" }

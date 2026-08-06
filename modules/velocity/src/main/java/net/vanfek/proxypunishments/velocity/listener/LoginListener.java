@@ -9,6 +9,7 @@ import net.kyori.adventure.text.Component;
 import net.vanfek.proxypunishments.api.ActivePunishmentView;
 import net.vanfek.proxypunishments.api.PunishmentKind;
 import net.vanfek.proxypunishments.core.PunishmentServiceImpl;
+import net.vanfek.proxypunishments.core.address.IpAddresses;
 import net.vanfek.proxypunishments.core.config.PluginConfig;
 import net.vanfek.proxypunishments.core.duration.DurationFormatter;
 import net.vanfek.proxypunishments.core.i18n.MessageBundle;
@@ -16,6 +17,7 @@ import net.vanfek.proxypunishments.core.i18n.Placeholders;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 
+import java.net.InetSocketAddress;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
@@ -51,18 +53,21 @@ public final class LoginListener {
 
     public @NotNull CompletableFuture<Void> handle(@NotNull LoginEvent event) {
         Player player = event.getPlayer();
+        Optional<String> address = addressOf(player);
 
         return this.punishments.findActive(player.getUniqueId(), PunishmentKind.BAN)
                 .thenCompose(active -> {
                     Optional<ActivePunishmentView> enforceable = active.filter(this::isStillActive);
 
                     if (enforceable.isPresent()) {
-                        event.setResult(ComponentResult.denied(renderBan(enforceable.get())));
+                        event.setResult(ComponentResult.denied(render(
+                                enforceable.get(), "login.kick-permanent", "login.kick-temporary"
+                        )));
 
                         return CompletableFuture.completedFuture(null);
                     }
 
-                    return rememberIfNeeded(player);
+                    return checkAddress(event, player, address);
                 })
                 .exceptionally(throwable -> {
                     onLookupFailure(event, throwable);
@@ -71,12 +76,33 @@ public final class LoginListener {
                 });
     }
 
-    private CompletableFuture<Void> rememberIfNeeded(Player player) {
+    private CompletableFuture<Void> checkAddress(LoginEvent event, Player player, Optional<String> address) {
+        if (address.isEmpty()) {
+            return rememberIfNeeded(player, address);
+        }
+
+        return this.punishments.findActiveIpBan(address.get())
+                .thenCompose(active -> {
+                    Optional<ActivePunishmentView> enforceable = active.filter(this::isStillActive);
+
+                    if (enforceable.isPresent()) {
+                        event.setResult(ComponentResult.denied(render(
+                                enforceable.get(), "login.kick-ip-permanent", "login.kick-ip-temporary"
+                        )));
+
+                        return CompletableFuture.completedFuture(null);
+                    }
+
+                    return rememberIfNeeded(player, address);
+                });
+    }
+
+    private CompletableFuture<Void> rememberIfNeeded(Player player, Optional<String> address) {
         if (!this.config.rememberPlayer) {
             return CompletableFuture.completedFuture(null);
         }
 
-        return this.punishments.rememberPlayer(player.getUniqueId(), player.getUsername())
+        return this.punishments.rememberPlayer(player.getUniqueId(), player.getUsername(), address.orElse(null))
                 .exceptionally(throwable -> {
                     this.logger.warn("Failed to remember player {}: {}", player.getUsername(), unwrap(throwable).getMessage());
 
@@ -103,8 +129,8 @@ public final class LoginListener {
         return ban.isPermanent() || !ban.isExpired(this.clock.instant());
     }
 
-    private Component renderBan(ActivePunishmentView ban) {
-        String key = ban.isPermanent() ? "login.kick-permanent" : "login.kick-temporary";
+    private Component render(ActivePunishmentView ban, String permanentKey, String temporaryKey) {
+        String key = ban.isPermanent() ? permanentKey : temporaryKey;
         Instant now = this.clock.instant();
 
         Duration remaining = ban.expiry()
@@ -116,6 +142,16 @@ public final class LoginListener {
                 Placeholders.of("remaining", ban.isPermanent() ? "—" : DurationFormatter.human(remaining)),
                 Placeholders.of("expires_at", ban.expiry().map(Instant::toString).orElse("—"))
         );
+    }
+
+    private static Optional<String> addressOf(Player player) {
+        InetSocketAddress remote = player.getRemoteAddress();
+
+        if (remote == null || remote.getAddress() == null) {
+            return Optional.empty();
+        }
+
+        return IpAddresses.parse(remote.getAddress().getHostAddress());
     }
 
     private static Throwable unwrap(Throwable throwable) {
