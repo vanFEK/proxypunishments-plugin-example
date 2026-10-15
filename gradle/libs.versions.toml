@@ -4,7 +4,7 @@
 velocity = "3.5.0-20260711.003721-41"
 paper = "1.21.8-R0.1-20250906.215025-55"
 luckperms = "5.5"
-gson = "2.11.0"
+gson = "2.14.0"
 annotations = "26.0.2"
 caffeine = "3.2.0"
 configurate = "4.2.0"
